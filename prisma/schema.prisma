@@ -1,0 +1,80 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Provider {
+  WHATSAPP
+  SMS
+  EMAIL
+}
+
+enum Direction {
+  IN
+  OUT
+}
+
+enum Stage {
+  NEW
+  IN_PROGRESS
+  WAITING
+  DONE
+}
+
+enum Plan {
+  FREE
+  PRO
+}
+
+model User {
+  id             String          @id @default(uuid())
+  email          String          @unique
+  name           String?
+  contacts       Contact[]
+  deals          Deal[]
+  stripeCustomer StripeCustomer?
+}
+
+model Contact {
+  id       String   @id @default(uuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id])
+  name     String
+  phone    String?
+  email    String?
+  messages Message[]
+  deals    Deal[]
+}
+
+model Message {
+  id        String     @id @default(uuid())
+  contactId String
+  contact   Contact    @relation(fields: [contactId], references: [id])
+  provider  Provider
+  body      String
+  direction Direction
+  sentAt    DateTime
+}
+
+model Deal {
+  id         String   @id @default(uuid())
+  userId     String
+  contactId  String
+  user       User     @relation(fields: [userId], references: [id])
+  contact    Contact  @relation(fields: [contactId], references: [id])
+  stage      Stage
+  reminderAt DateTime?
+}
+
+model StripeCustomer {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id])
+  stripeId         String
+  plan             Plan
+  currentPeriodEnd DateTime
+}
