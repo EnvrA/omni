@@ -5,7 +5,9 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "baseUrl": ".",                       // make paths relative to this folder
+    "paths": { "@/*": ["./*"] }           // allow "@/..." imports
   },
   "include": [
     "**/*.ts",
