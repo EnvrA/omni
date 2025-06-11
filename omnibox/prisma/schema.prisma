@@ -34,10 +34,11 @@ model User {
   id             String          @id @default(uuid())
   email          String          @unique
   name           String?
-  contacts       Contact[]
-  deals          Deal[]
+  emailVerified  DateTime? // verification timestamp
   accounts       Account[]
   sessions       Session[]
+  contacts       Contact[]
+  deals          Deal[]
   stripeCustomer StripeCustomer?
 }
 
