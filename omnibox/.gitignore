@@ -36,3 +36,12 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# Local secrets
+*.env
+.env.local
+
+# Local secrets
+.env
+.env.local
+*.env
