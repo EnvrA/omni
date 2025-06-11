@@ -36,13 +36,15 @@ model User {
   name           String?
   contacts       Contact[]
   deals          Deal[]
+  accounts       Account[]
+  sessions       Session[]
   stripeCustomer StripeCustomer?
 }
 
 model Contact {
-  id       String   @id @default(uuid())
+  id       String    @id @default(uuid())
   userId   String
-  user     User     @relation(fields: [userId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
   name     String
   phone    String?
   email    String?
@@ -51,9 +53,9 @@ model Contact {
 }
 
 model Message {
-  id        String     @id @default(uuid())
+  id        String    @id @default(uuid())
   contactId String
-  contact   Contact    @relation(fields: [contactId], references: [id])
+  contact   Contact   @relation(fields: [contactId], references: [id])
   provider  Provider
   body      String
   direction Direction
@@ -61,11 +63,11 @@ model Message {
 }
 
 model Deal {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   userId     String
   contactId  String
-  user       User     @relation(fields: [userId], references: [id])
-  contact    Contact  @relation(fields: [contactId], references: [id])
+  user       User      @relation(fields: [userId], references: [id])
+  contact    Contact   @relation(fields: [contactId], references: [id])
   stage      Stage
   reminderAt DateTime?
 }
@@ -81,19 +83,19 @@ model StripeCustomer {
 
 /// Fields required by next-auth
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
