@@ -21,10 +21,28 @@ export default function Dashboard() {
   const [contactId, setContactId] = useState<string>()
 
   // messages for the selected contact
-  const { data: messages, error: messagesError } = useSWR(
+  const { data: messages, error: messagesError, mutate: mutateMessages } = useSWR(
     contactId ? `/api/messages?contactId=${contactId}` : null,
     fetcher
   )
+
+  // State for the new outbound message
+  const [messageBody, setMessageBody] = useState("")
+
+  // Handler for sending a message
+  async function sendMessage(e: React.FormEvent) {
+    e.preventDefault()
+    if (!contactId || !messageBody.trim()) return
+    const res = await fetch("/api/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contactId, body: messageBody }),
+    })
+    if (res.ok) {
+      setMessageBody("")
+      if (mutateMessages) mutateMessages()
+    }
+  }
 
   return (
     <div className="p-6 flex gap-6">
@@ -75,6 +93,24 @@ export default function Dashboard() {
                 </li>
               ))}
             </ul>
+            {/* Outbound Message Input + Send Button */}
+            <form onSubmit={sendMessage} className="flex gap-2 mt-4">
+              <input
+                className="border rounded px-2 py-1 flex-1"
+                placeholder="Type a message…"
+                value={messageBody}
+                onChange={e => setMessageBody(e.target.value)}
+                disabled={!contactId}
+                autoFocus
+              />
+              <button
+                type="submit"
+                className="bg-blue-600 text-white px-3 py-1 rounded"
+                disabled={!contactId || !messageBody.trim()}
+              >
+                Send
+              </button>
+            </form>
           </>
         )}
       </main>
