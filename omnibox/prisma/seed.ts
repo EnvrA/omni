@@ -1,77 +1,93 @@
-import { PrismaClient, Provider, Direction } from "@prisma/client";
+/// <reference types="node" />
+const DEMO_EMAIL = process.env.SEED_EMAIL ?? "ee.altuntas@gmail.com"
 
-const prisma = new PrismaClient();
+import { PrismaClient, Provider, Direction } from "@prisma/client"
+
+const prisma = new PrismaClient()
 
 async function main() {
-  // 🔄  create-or-reuse demo user
- const DEMO_EMAIL = process.env.SEED_EMAIL ?? "demo@example.com";
+  /* ------------------------------------------------------------------ *
+   * 1 · Resolve configurable bits                                      *
+   * ------------------------------------------------------------------ */
+  // Use a real Twilio number in E.164 format (or Twilio’s test +15005550006)
+  const TWILIO_NUMBER = process.env.SEED_TWILIO_PHONE ?? "+15005550006"
 
-// 🔄  create-or-reuse demo user
-const user = await prisma.user.upsert({
-  where: { email: DEMO_EMAIL },
-  update: {},                            // nothing to change if it exists
-  create: {
-    email: DEMO_EMAIL,
-    name: "Demo User",
-  },
-});
+  /* ------------------------------------------------------------------ *
+   * 2 · Create-or-reuse the demo SaaS user                             *
+   * ------------------------------------------------------------------ */
+  const user = await prisma.user.upsert({
+    where:  { email: DEMO_EMAIL },
+    update: {},
+    create: { email: DEMO_EMAIL, name: "Demo User" },
+  })
 
-  // ------------------------------------------------------------------
-  // Clear existing demo data (order matters → messages first, then contacts)
-  // ------------------------------------------------------------------
-  await prisma.message.deleteMany({
-    where: { contact: { userId: user.id } },
-  });
-  await prisma.contact.deleteMany({ where: { userId: user.id } });
+  /* ------------------------------------------------------------------ *
+   * 3 · Register the Twilio number that belongs to this user           *
+   *    (model TwilioNumber { phone @id, userId String })               *
+   * ------------------------------------------------------------------ */
+  await prisma.twilioNumber.upsert({
+    where:  { phone: TWILIO_NUMBER },
+    update: { userId: user.id },          // keeps it in sync if you change owner
+    create: { phone: TWILIO_NUMBER, userId: user.id },
+  })
 
-  // ------------------------------------------------------------------
-  // Fresh demo contacts + messages
-  // ------------------------------------------------------------------
+  /* ------------------------------------------------------------------ *
+   * 4 · Clear previous demo data (messages → contacts)                 *
+   * ------------------------------------------------------------------ */
+  await prisma.message.deleteMany({ where: { contact: { userId: user.id } } })
+  await prisma.contact.deleteMany({ where: { userId: user.id } })
 
+  /* ------------------------------------------------------------------ *
+   * 5 · Fresh demo contacts + messages                                 *
+   * ------------------------------------------------------------------ */
   const contact1 = await prisma.contact.create({
     data: {
       userId: user.id,
-      name: "Alice",
-      phone: "123-456-7890",
-      email: "alice@example.com",
+      name:   "Alice",
+      phone:  "+31612345678",
+      email:  "alice@example.com",
     },
-  });
+  })
 
   await prisma.message.create({
-    data: {
-      contactId: contact1.id,
-      provider: Provider.EMAIL,
-      body: "Hello Alice!",
-      direction: Direction.OUT,
-      sentAt: new Date(),
-    },
-  });
+  data: {
+    contactId: contact1.id,
+    userId:    user.id,           // 👈  add this line
+    provider:  Provider.EMAIL,
+    body:      "Hello Alice!",
+    direction: Direction.OUT,
+    sentAt:    new Date(),
+  },
+})
 
   const contact2 = await prisma.contact.create({
     data: {
       userId: user.id,
-      name: "Bob",
-      phone: "987-654-3210",
-      email: "bob@example.com",
+      name:   "Bob",
+      phone:  "+31698765432",
+      email:  "bob@example.com",
     },
-  });
+  })
 
   await prisma.message.create({
-    data: {
-      contactId: contact2.id,
-      provider: Provider.SMS,
-      body: "Hi Bob!",
-      direction: Direction.OUT,
-      sentAt: new Date(),
-    },
-  });
+  data: {
+    contactId: contact2.id,
+    userId:    user.id,           // 👈  add this line
+    provider:  Provider.SMS,
+    body:      "Hi Bob!",
+    direction: Direction.OUT,
+    sentAt:    new Date(),
+  },
+})
+
+  console.log("🌱  Seed completed – demo user, Twilio number, contacts & messages.")
 }
 
 main()
   .catch((e) => {
-    console.error(e);
-    process.exit(1);
+    console.error(e)
+    process.exit(1)
   })
   .finally(async () => {
-    await prisma.$disconnect();
-  });
+    await prisma.$disconnect()
+  })
