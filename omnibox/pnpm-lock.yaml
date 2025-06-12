@@ -18,6 +18,9 @@ importers:
         specifier: ^3.22.4
         version: 3.25.61
     devDependencies:
+      '@types/node':
+        specifier: ^22.15.3
+        version: 22.15.3
       prettier:
         specifier: ^3.5.3
         version: 3.5.3
