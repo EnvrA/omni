@@ -45,22 +45,28 @@ model User {
 model Contact {
   id       String    @id @default(uuid())
   userId   String
-  user     User      @relation(fields: [userId], references: [id])
-  name     String
   phone    String?
+  name     String?
   email    String?
   messages Message[]
-  deals    Deal[]
+  User     User      @relation(fields: [userId], references: [id])
+  Deal     Deal[]
+
+  @@unique([phone, userId], name: "phone_userId")
 }
 
 model Message {
   id        String    @id @default(uuid())
   contactId String
-  contact   Contact   @relation(fields: [contactId], references: [id])
+  userId    String
   provider  Provider
   body      String
-  direction Direction
-  sentAt    DateTime
+  direction Direction @default(OUT)
+  sentAt    DateTime  @default(now())
+
+  contact Contact @relation(fields: [contactId], references: [id])
+
+  @@index([contactId])
 }
 
 model Deal {
@@ -115,4 +121,10 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+/// Maps each SaaS tenant (user) to a Twilio phone number.
+model TwilioNumber {
+  phone  String @id // E.164 e.g. +15005550006
+  userId String // fk → User.id
 }

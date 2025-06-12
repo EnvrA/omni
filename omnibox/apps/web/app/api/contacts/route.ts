@@ -1,21 +1,20 @@
-import { NextResponse } from "next/server";
-import { z } from "zod";
-import prisma from "@/lib/prisma";
-import { serverSession } from "@/lib/auth";
+import { NextResponse } from 'next/server'
+import prisma from '@/lib/prisma'
+import { serverSession } from '@/lib/auth'
 
 export async function GET() {
-  const session = await serverSession();
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const session = await serverSession()
 
-  // find the logged-in user
+  // ---------- DEV FALLBACK ----------
+  let email = session?.user?.email ?? "ee.altuntas@gmail.com"
+  // ----------------------------------
+
   const user = await prisma.user.findFirst({
-    where: { email: session.user.email },
+    where: { email },
     select: { id: true },
-  });
-  if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
+  })
+  if (!user) return NextResponse.json({ contacts: [] })
+    
   // latest message timestamp per contact
   const contacts = await prisma.contact.findMany({
     where: { userId: user.id },
@@ -38,5 +37,5 @@ export async function GET() {
     (b.lastMessageAt?.getTime() ?? 0) - (a.lastMessageAt?.getTime() ?? 0)
   );
 
-  return NextResponse.json({ contacts: result });
+return NextResponse.json({ contacts: result });
 }
