@@ -1,8 +1,7 @@
 "use client";
 
-import useSWR from 'swr'
-import { useState } from 'react'
-import Link from 'next/link'
+import useSWR from "swr";
+import { useState } from "react";
 
 // Robust fetcher handles non-JSON gracefully
 const fetcher = async (url: string) => {
@@ -44,8 +43,25 @@ export default function Dashboard() {
     }
   }
 
+  const selectedContact = contacts?.contacts?.find((c: any) => c.id === contactId)
+
+  const contactInitials = selectedContact?.name
+    ? selectedContact.name
+        .split(" ")
+        .map((p: string) => p[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "?"
+
+  const Avatar = ({ label }: { label: string }) => (
+    <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-300 text-xs font-medium text-gray-700">
+      {label}
+    </div>
+  )
+
   return (
-    <div className="p-6 flex gap-6">
+    <div className="p-6 flex flex-col sm:flex-row gap-6 h-[calc(100vh-3rem)]">
       {/* CONTACT LIST */}
       <aside className="w-64">
         <h2 className="font-bold mb-2">Contacts</h2>
@@ -72,7 +88,7 @@ export default function Dashboard() {
       </aside>
 
       {/* MESSAGE THREAD */}
-      <main className="flex-1">
+      <main className="flex-1 flex flex-col">
         {!contactId && <p>Select a contact →</p>}
         {contactId && (
           <>
@@ -83,23 +99,41 @@ export default function Dashboard() {
                 Error loading messages: {messagesError.message || String(messagesError)}
               </div>
             )}
-            <ul className="space-y-2">
+            <ul className="flex-1 overflow-y-auto space-y-3 pr-2">
               {messages?.messages?.map((m: any) => (
-                <li key={m.id} className="p-2 bg-gray-100 rounded">
-                  <small className="text-xs text-gray-500">
-                    {new Date(m.sentAt).toLocaleString()}
-                  </small>
-                  <p>{m.body}</p>
+                <li
+                  key={m.id}
+                  className={`flex items-end gap-2 ${
+                    m.direction === 'OUT' ? 'justify-end' : 'justify-start'
+                  }`}
+                >
+                  {m.direction !== 'OUT' && <Avatar label={contactInitials} />}
+                  <div
+                    className={`rounded-xl px-3 py-2 max-w-[70%] text-sm break-words ${
+                      m.direction === 'OUT'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-900'
+                    }`}
+                  >
+                    <p>{m.body}</p>
+                    <span className="mt-1 block text-[10px] text-gray-500">
+                      {new Date(m.sentAt).toLocaleString()}
+                    </span>
+                  </div>
+                  {m.direction === 'OUT' && <Avatar label="You" />}
                 </li>
               ))}
             </ul>
             {/* Outbound Message Input + Send Button */}
-            <form onSubmit={sendMessage} className="flex gap-2 mt-4">
+            <form
+              onSubmit={sendMessage}
+              className="sticky bottom-0 left-0 right-0 mt-4 flex gap-2 bg-white p-2 sm:static"
+            >
               <input
                 className="border rounded px-2 py-1 flex-1"
                 placeholder="Type a message…"
                 value={messageBody}
-                onChange={e => setMessageBody(e.target.value)}
+                onChange={(e) => setMessageBody(e.target.value)}
                 disabled={!contactId}
                 autoFocus
               />
