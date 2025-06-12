@@ -4,9 +4,9 @@ import useSWR from 'swr'
 import { useState } from 'react'
 import Link from 'next/link'
 
-// -- use this robust fetcher --
+// Robust fetcher handles non-JSON gracefully
 const fetcher = async (url: string) => {
-  const res  = await fetch(url)
+  const res = await fetch(url)
   const text = await res.text()
   try {
     return JSON.parse(text)
@@ -17,11 +17,11 @@ const fetcher = async (url: string) => {
 
 export default function Dashboard() {
   // contacts for the signed-in user
-  const { data: contacts } = useSWR('/api/contacts', fetcher)
+  const { data: contacts, error: contactsError } = useSWR('/api/contacts', fetcher)
   const [contactId, setContactId] = useState<string>()
 
   // messages for the selected contact
-  const { data: messages } = useSWR(
+  const { data: messages, error: messagesError } = useSWR(
     contactId ? `/api/messages?contactId=${contactId}` : null,
     fetcher
   )
@@ -31,6 +31,12 @@ export default function Dashboard() {
       {/* CONTACT LIST */}
       <aside className="w-64">
         <h2 className="font-bold mb-2">Contacts</h2>
+        {/* Show error if contacts failed to load */}
+        {contactsError && (
+          <div className="text-red-500 mb-2">
+            Error loading contacts: {contactsError.message || String(contactsError)}
+          </div>
+        )}
         <ul>
           {contacts?.contacts?.map((c: any) => (
             <li key={c.id}>
@@ -53,6 +59,12 @@ export default function Dashboard() {
         {contactId && (
           <>
             <h2 className="font-bold mb-2">Messages</h2>
+            {/* Show error if messages failed to load */}
+            {messagesError && (
+              <div className="text-red-500 mb-2">
+                Error loading messages: {messagesError.message || String(messagesError)}
+              </div>
+            )}
             <ul className="space-y-2">
               {messages?.messages?.map((m: any) => (
                 <li key={m.id} className="p-2 bg-gray-100 rounded">

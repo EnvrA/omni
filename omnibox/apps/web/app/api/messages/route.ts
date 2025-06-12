@@ -8,14 +8,24 @@ const querySchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-  const session = await serverSession();
-  if (!session) {
+  // Get the session and log it
+  let session = await serverSession();
+  console.log("SESSION OBJECT IN /api/messages:", session);
+
+  // If no session or no email, reject
+  if (!session || !session.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const userId = (session.user as { id?: string })?.id;
-  if (!userId) {
+
+  // Look up userId by email (since session.user.id is missing)
+  const userRecord = await prisma.user.findUnique({
+    where: { email: session.user.email }
+  });
+
+  if (!userRecord) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const userId = userRecord.id;
 
   const url = new URL(req.url);
   const contactId = url.searchParams.get("contactId");
