@@ -7,6 +7,7 @@ import { useState } from "react";
 const fetcher = async (url: string) => {
   const res = await fetch(url)
   const text = await res.text()
+  console.log(`Fetcher got for ${url}:`, text); // <--- ADDED LOGGING
   try {
     return JSON.parse(text)
   } catch {
