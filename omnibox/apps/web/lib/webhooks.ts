@@ -38,6 +38,7 @@ export async function upsertContactAndMessage(
 
   const message = await prisma.message.create({
     data: {
+      userId: user.id,
       contactId: contact.id,
       provider,
       body,
