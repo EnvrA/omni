@@ -8,7 +8,6 @@ import { Input, Button, Avatar, AvatarFallback } from "shadcn-ui-react";
 const fetcher = async (url: string) => {
   const res = await fetch(url);
   const text = await res.text();
-  console.log(`Fetcher got for ${url}:`, text); // <--- ADDED LOGGING
   try {
     return JSON.parse(text);
   } catch {
