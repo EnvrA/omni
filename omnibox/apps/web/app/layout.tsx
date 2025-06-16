@@ -1,5 +1,4 @@
 import "./globals.css";
-import "shadcn-ui-react/dist/style.css";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 
