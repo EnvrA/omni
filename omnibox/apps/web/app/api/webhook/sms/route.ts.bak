@@ -16,6 +16,7 @@ import {
 */
 
 export async function POST(req: NextRequest) {
+  console.log("POST /api/webhook/sms called");
   // Twilio sends x-www-form-urlencoded
   const bodyText = await req.text();
   const params = new URLSearchParams(bodyText);
@@ -24,6 +25,8 @@ export async function POST(req: NextRequest) {
     From: params.get("From") ?? "",
     Body: params.get("Body") ?? "",
   };
+
+  console.log("INBOUND SMS:", payload); // <--- Add this line
 
   if (!payload.From) {
     return new NextResponse("Bad Request", { status: 400 });
@@ -35,5 +38,8 @@ export async function POST(req: NextRequest) {
     payload.Body           // SMS text
   );
 
+  return NextResponse.json({ ok: true });
+}
+export async function GET() {
   return NextResponse.json({ ok: true });
 }
