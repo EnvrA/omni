@@ -12,6 +12,8 @@ const ThemeImage = (props: Props) => {
     <>
       <Image {...rest} src={srcLight} className="imgLight" />
       <Image {...rest} src={srcDark} className="imgDark" />
+      <p className="text-red-500">Tailwind test – should appear red</p>
+
     </>
   );
 };
