@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR from "swr";
-import { Input, Button } from "shadcn-ui-react";
+import { Input, Button } from "@/components/ui";
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
@@ -33,10 +33,7 @@ export default function SettingsPage() {
           ].map(url => (
             <li key={url} className="flex items-center gap-2">
               <span className="font-mono text-sm">{url}</span>
-              <Button
-                size="sm"
-                onClick={() => navigator.clipboard.writeText(location.origin + url)}
-              >
+              <Button onClick={() => navigator.clipboard.writeText(location.origin + url)}>
                 Copy
               </Button>
             </li>
