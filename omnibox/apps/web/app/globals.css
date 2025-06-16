@@ -1,7 +1,6 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import "shadcn-ui-react/dist/style.css";
 
 :root {
   --background: #ffffff;

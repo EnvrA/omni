@@ -2,7 +2,7 @@
 
 import useSWR from "swr";
 import { DndContext, useDraggable, useDroppable, DragEndEvent } from "@dnd-kit/core";
-import { Card } from "shadcn-ui-react";
+import { Card } from "@/components/ui";
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 

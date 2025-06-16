@@ -2,7 +2,7 @@
 
 import useSWR from "swr";
 import { useMemo, useState } from "react";
-import { Input, Button, Avatar, AvatarFallback } from "shadcn-ui-react";
+import { Input, Button, Avatar } from "@/components/ui";
 
 // Robust fetcher handles non-JSON gracefully
 const fetcher = async (url: string) => {
@@ -88,24 +88,22 @@ export default function InboxPage() {
             <li key={c.id}>
               <button
                 className={`flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-gray-100 focus:outline-none ${
-                  c.id === contactId
-                    ? "bg-blue-100 text-blue-700 font-medium"
-                    : ""
+                  c.id === contactId ? "bg-blue-100 text-blue-700 font-medium" : ""
                 }`}
                 onClick={() => setContactId(c.id)}
               >
-                <Avatar>
-                  <AvatarFallback>
-                    {c.name
+                <Avatar
+                  label={
+                    c.name
                       ? c.name
                           .split(" ")
                           .map((p: string) => p[0])
                           .join("")
                           .slice(0, 2)
                           .toUpperCase()
-                      : "?"}
-                  </AvatarFallback>
-                </Avatar>
+                      : "?"
+                  }
+                />
                 <span className="flex-1 truncate">{c.name || c.email || c.phone}</span>
                 <span className="text-xs text-gray-500">{c.lastMessageBody ?? ''}</span>
               </button>
