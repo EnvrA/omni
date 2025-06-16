@@ -15,3 +15,13 @@ This repository uses Prisma with a PostgreSQL database.
    ```
 
 After these steps the `Contact` table and the rest of the schema will exist and you can run the application normally.
+
+## Workflow
+
+Write clear commit messages that briefly describe what your change does. For example:
+
+```
+Add dashboard layout and pages using shadcn-ui
+```
+
+Keeping messages concise makes the project history easier to understand.
