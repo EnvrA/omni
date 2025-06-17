@@ -16,6 +16,13 @@ This repository uses Prisma with a PostgreSQL database.
 
 After these steps the `Contact` table and the rest of the schema will exist and you can run the application normally.
 
+Whenever the Prisma schema changes (for example the new optional contact fields introduced in this update) run:
+```sh
+npx prisma db push
+npx prisma generate
+```
+to update your database and regenerate the Prisma client.
+
 ## Workflow
 
 Write clear commit messages that briefly describe what your change does. For example:

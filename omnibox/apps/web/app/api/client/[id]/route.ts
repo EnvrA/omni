@@ -9,11 +9,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { name, email: clientEmail, phone } = body as { name?: string; email?: string; phone?: string };
+  const { name, email: clientEmail, phone, company, notes, tag } = body as {
+    name?: string;
+    email?: string;
+    phone?: string;
+    company?: string;
+    notes?: string;
+    tag?: string;
+  };
 
   const client = await prisma.contact.update({
     where: { id: params.id, userId: user.id },
-    data: { name, email: clientEmail, phone },
+    data: { name, email: clientEmail, phone, company, notes, tag },
   });
 
   return NextResponse.json({ client });
