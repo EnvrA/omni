@@ -48,6 +48,11 @@ model Contact {
   phone    String?
   name     String?
   email    String?
+  company  String?
+  notes    String?
+  tag      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   messages Message[]
   User     User      @relation(fields: [userId], references: [id])
   Deal     Deal[]
