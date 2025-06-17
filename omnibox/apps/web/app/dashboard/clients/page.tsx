@@ -3,6 +3,11 @@
 import useSWR from "swr";
 import { useState } from "react";
 import { Input, Button, Card, Avatar, Badge, Textarea } from "@/components/ui";
+
+const tagColors: Record<string, string> = {
+  VIP: "bg-yellow-100 text-yellow-800",
+  "New Client": "bg-blue-100 text-blue-800",
+};
 import { toast } from "sonner";
 
 const fetcher = async (url: string) => {
@@ -37,8 +42,12 @@ export default function ClientsPage() {
   const [sort, setSort] = useState<"name" | "date" | "activity">("name");
   const [tagFilter, setTagFilter] = useState("all");
   const [selected, setSelected] = useState<string[]>([]);
+  const [bulkTagValue, setBulkTagValue] = useState("");
+  const [fading, setFading] = useState<string[]>([]);
   const PAGE_SIZE = 8;
   const [page, setPage] = useState(1);
+
+  const tags = Array.from(new Set((data?.clients ?? []).map(c => c.tag).filter(Boolean))) as string[];
 
   const openAdd = () => {
     setForm({ name: "", email: "", phone: "", company: "", notes: "", tag: "" });
@@ -103,7 +112,11 @@ export default function ClientsPage() {
       toast.error("Failed to delete");
     } else {
       toast.success("Client deleted");
-      mutate();
+      setFading(f => [...f, id]);
+      setTimeout(() => {
+        setFading(f => f.filter(v => v !== id));
+        mutate();
+      }, 300);
     }
   }
 
@@ -123,7 +136,26 @@ export default function ClientsPage() {
   }
 
   async function bulkDelete() {
+    setFading(f => [...f, ...selected]);
     await Promise.all(selected.map(id => fetch(`/api/client/${id}`, { method: "DELETE" })));
+    const removed = selected;
+    setSelected([]);
+    setTimeout(() => {
+      setFading(f => f.filter(id => !removed.includes(id)));
+      mutate();
+    }, 300);
+  }
+
+  async function applyTag() {
+    await Promise.all(
+      selected.map(id =>
+        fetch(`/api/client/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tag: bulkTagValue }),
+        }),
+      ),
+    );
     setSelected([]);
     mutate();
   }
@@ -153,8 +185,11 @@ export default function ClientsPage() {
             onChange={e => setTagFilter(e.target.value)}
           >
             <option value="all">All Tags</option>
-            <option value="VIP">VIP</option>
-            <option value="New Client">New Client</option>
+            {tags.map(t => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
           </select>
         </div>
         <div className="flex items-center justify-between gap-2 sm:justify-end">
@@ -167,8 +202,21 @@ export default function ClientsPage() {
       </div>
 
       {selected.length > 0 && (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm">{selected.length} selected</span>
+          <select
+            className="rounded border p-1"
+            value={bulkTagValue}
+            onChange={e => setBulkTagValue(e.target.value)}
+          >
+            <option value="">Tag...</option>
+            {tags.map(t => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+          <Button onClick={applyTag}>Apply Tag</Button>
           <Button onClick={bulkDelete}>Delete</Button>
         </div>
       )}
@@ -198,7 +246,7 @@ export default function ClientsPage() {
           {paged.map(c => (
             <Card
               key={c.id}
-              className="space-y-1 transition-opacity"
+              className={`space-y-1 transition-opacity duration-300 fade-in ${fading.includes(c.id) ? "opacity-0" : ""}`}
               onClick={() => {
                 setDetail(c);
                 setForm(f => ({ ...f, notes: c.notes ?? "" }));
@@ -216,7 +264,7 @@ export default function ClientsPage() {
                 />
                 <Avatar label={(c.name || c.email || "?").slice(0, 2).toUpperCase()} />
                 <div className="flex-1 font-semibold">{c.name || "Unnamed"}</div>
-                {c.tag && <Badge>{c.tag}</Badge>}
+                {c.tag && <Badge className={tagColors[c.tag] || ""}>{c.tag}</Badge>}
               </div>
               <div className="text-sm text-gray-600">{c.company || "-"}</div>
               <div className="text-sm text-gray-600">{c.email || "-"}</div>
@@ -289,6 +337,9 @@ export default function ClientsPage() {
             <p className="text-sm text-gray-600">{detail.email}</p>
             <p className="text-sm text-gray-600">{detail.phone}</p>
             <p className="text-sm text-gray-600">{detail.company}</p>
+            <p className="text-sm text-gray-600">
+              Last activity: {new Date(detail.lastActivity).toLocaleString()}
+            </p>
             <Textarea
               value={form.notes}
               onChange={e => setForm({ ...form, notes: e.target.value })}
