@@ -15,7 +15,9 @@ For monorepo details, see [omnibox/README.md](omnibox/README.md).
    npx ts-node prisma/seed.ts
    ```
 
-After these steps the `Contact` table and the rest of the schema will exist and you can run the application normally. If this is your first time setting up the project, run `pnpm install` inside the `omnibox` directory before starting the development server.
+After these steps the `Contact` table and the rest of the schema will exist and you can run the application normally.
+
+If this is your first time setting up the project, run `pnpm install` inside the `omnibox` directory before starting the development server.
 
 Whenever the Prisma schema changes (for example when new optional contact fields are added), run the following commands from the `omnibox` directory to update your database and regenerate the Prisma client:
 
