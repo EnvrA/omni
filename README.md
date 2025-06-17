@@ -17,7 +17,7 @@ For monorepo details, see [omnibox/README.md](omnibox/README.md).
 
 After these steps the `Contact` table and the rest of the schema will exist and you can run the application normally.
 
-Whenever the Prisma schema changes (for example the new optional contact fields introduced in this update) run:
+Whenever the Prisma schema changes (for example, when new optional contact fields are added) run:
 
 ```sh
 npx prisma db push
