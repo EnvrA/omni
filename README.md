@@ -36,4 +36,3 @@ Add dashboard layout and pages using shadcn-ui
 ```
 
 Keeping messages concise makes the project history easier to understand.
-
