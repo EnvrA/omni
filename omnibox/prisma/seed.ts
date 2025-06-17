@@ -46,6 +46,9 @@ async function main() {
       name:   "Alice",
       phone:  "+31612345678",
       email:  "alice@example.com",
+      company: "Wonderland Co.",
+      notes:   "Met at conference",
+      tag:     "VIP",
     },
   })
 
@@ -66,6 +69,9 @@ async function main() {
       name:   "Bob",
       phone:  "+31698765432",
       email:  "bob@example.com",
+      company: "Builder Inc.",
+      notes:   "Potential partner",
+      tag:     "New Client",
     },
   })
 
