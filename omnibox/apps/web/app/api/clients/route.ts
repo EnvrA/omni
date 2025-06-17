@@ -10,11 +10,26 @@ export async function GET() {
 
   const clients = await prisma.contact.findMany({
     where: { userId: user.id },
-    select: { id: true, name: true, email: true, phone: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      company: true,
+      notes: true,
+      tag: true,
+      createdAt: true,
+      messages: { orderBy: { sentAt: "desc" }, take: 1, select: { sentAt: true } },
+    },
     orderBy: { name: "asc" },
   });
 
-  return NextResponse.json({ clients });
+  const result = clients.map(c => ({
+    ...c,
+    lastActivity: c.messages[0]?.sentAt ?? c.createdAt,
+  }));
+
+  return NextResponse.json({ clients: result });
 }
 
 export async function POST(req: NextRequest) {
@@ -24,10 +39,17 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { name, email: clientEmail, phone } = body as { name?: string; email?: string; phone?: string };
+  const { name, email: clientEmail, phone, company, notes, tag } = body as {
+    name?: string;
+    email?: string;
+    phone?: string;
+    company?: string;
+    notes?: string;
+    tag?: string;
+  };
 
   const client = await prisma.contact.create({
-    data: { userId: user.id, name, email: clientEmail, phone },
+    data: { userId: user.id, name, email: clientEmail, phone, company, notes, tag },
   });
 
   return NextResponse.json({ client }, { status: 201 });
