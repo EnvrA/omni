@@ -3,12 +3,12 @@
 import useSWR from "swr";
 import { useState } from "react";
 import { Input, Button, Card, Avatar, Badge, Textarea } from "@/components/ui";
+import { toast } from "sonner";
 
 const tagColors: Record<string, string> = {
   VIP: "bg-yellow-100 text-yellow-800",
   "New Client": "bg-blue-100 text-blue-800",
 };
-import { toast } from "sonner";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
