@@ -17,14 +17,12 @@ For monorepo details, see [omnibox/README.md](omnibox/README.md).
 
 After these steps the `Contact` table and the rest of the schema will exist and you can run the application normally.
 
-Whenever the Prisma schema changes (for example, when new optional contact fields are added) run:
+Whenever the Prisma schema changes (for example when new optional contact fields are added), run the following from the `omnibox` directory to update your database and regenerate the Prisma client:
 
 ```sh
 npx prisma db push
 npx prisma generate
 ```
-
-to update your database and regenerate the Prisma client.
 
 If you see errors like `The column \`Contact.company\` does not exist` when running the web app, your database has not been updated. Ensure the `DATABASE_URL` environment variable is set and run `npx prisma db push` from the `omnibox` directory to apply the latest schema.
 
