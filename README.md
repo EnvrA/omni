@@ -16,7 +16,7 @@ This repository uses Prisma with a PostgreSQL database. For more information on 
 
 After these steps the `Contact` table and the rest of the schema will exist and you can run the application normally.
 
-If this is your first time setting up the project, run `pnpm install` inside the `omnibox` directory before starting the development server.
+If this is your first time setting up the project, run `pnpm install` inside the `omnibox` directory before starting the development server. Then run `pnpm --filter web dev` to start the web app.
 
 Whenever the Prisma schema changes (for example when new optional contact fields are added), run the following commands from the `omnibox` directory to update your database and regenerate the Prisma client:
 
