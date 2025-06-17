@@ -25,7 +25,7 @@ npx prisma generate
 
 to update your database and regenerate the Prisma client.
 
-If you see errors like `The column \`Contact.company\` does not exist`when running the web app, your database has not been updated. Ensure the`DATABASE_URL`environment variable is set and run`npx prisma db push`from the`omnibox` directory to apply the latest schema.
+If you see errors like `The column \`Contact.company\` does not exist` when running the web app, your database has not been updated. Ensure the `DATABASE_URL` environment variable is set and run `npx prisma db push` from the `omnibox` directory to apply the latest schema.
 
 ## Workflow
 
