@@ -33,10 +33,20 @@ interface Client {
 }
 
 export default function ClientsPage() {
-  const { data, error, mutate } = useSWR<{ clients: Client[] }>("/api/clients", fetcher);
+  const { data, error, mutate } = useSWR<{ clients: Client[] }>(
+    "/api/clients",
+    fetcher,
+  );
   const [showModal, setShowModal] = useState(false);
   const [detail, setDetail] = useState<Client | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", company: "", notes: "", tag: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    company: "",
+    notes: "",
+    tag: "",
+  });
   const [editId, setEditId] = useState<string>();
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"name" | "date" | "activity">("name");
@@ -47,10 +57,19 @@ export default function ClientsPage() {
   const PAGE_SIZE = 8;
   const [page, setPage] = useState(1);
 
-  const tags = Array.from(new Set((data?.clients ?? []).map(c => c.tag).filter(Boolean))) as string[];
+  const tags = Array.from(
+    new Set((data?.clients ?? []).map((c) => c.tag).filter(Boolean)),
+  ) as string[];
 
   const openAdd = () => {
-    setForm({ name: "", email: "", phone: "", company: "", notes: "", tag: "" });
+    setForm({
+      name: "",
+      email: "",
+      phone: "",
+      company: "",
+      notes: "",
+      tag: "",
+    });
     setEditId(undefined);
     setShowModal(true);
   };
@@ -69,8 +88,8 @@ export default function ClientsPage() {
   };
 
   const filtered = (data?.clients ?? [])
-    .filter(c => tagFilter === "all" || c.tag === tagFilter)
-    .filter(c => {
+    .filter((c) => tagFilter === "all" || c.tag === tagFilter)
+    .filter((c) => {
       const q = search.toLowerCase();
       return (
         c.name?.toLowerCase().includes(q) ||
@@ -82,9 +101,15 @@ export default function ClientsPage() {
     })
     .sort((a, b) => {
       if (sort === "name") return (a.name || "").localeCompare(b.name || "");
-      if (sort === "date") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (sort === "date")
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
       if (sort === "activity")
-        return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
+        return (
+          new Date(b.lastActivity).getTime() -
+          new Date(a.lastActivity).getTime()
+        );
       return 0;
     });
 
@@ -112,9 +137,9 @@ export default function ClientsPage() {
       toast.error("Failed to delete");
     } else {
       toast.success("Client deleted");
-      setFading(f => [...f, id]);
+      setFading((f) => [...f, id]);
       setTimeout(() => {
-        setFading(f => f.filter(v => v !== id));
+        setFading((f) => f.filter((v) => v !== id));
         mutate();
       }, 300);
     }
@@ -123,9 +148,11 @@ export default function ClientsPage() {
   function exportCSV() {
     const rows = [
       ["Name", "Email", "Phone", "Company", "Tag"],
-      ...paged.map(c => [c.name, c.email, c.phone, c.company, c.tag]),
+      ...paged.map((c) => [c.name, c.email, c.phone, c.company, c.tag]),
     ];
-    const csv = rows.map(r => r.map(v => `"${v ?? ""}"`).join(",")).join("\n");
+    const csv = rows
+      .map((r) => r.map((v) => `"${v ?? ""}"`).join(","))
+      .join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -136,19 +163,21 @@ export default function ClientsPage() {
   }
 
   async function bulkDelete() {
-    setFading(f => [...f, ...selected]);
-    await Promise.all(selected.map(id => fetch(`/api/client/${id}`, { method: "DELETE" })));
+    setFading((f) => [...f, ...selected]);
+    await Promise.all(
+      selected.map((id) => fetch(`/api/client/${id}`, { method: "DELETE" })),
+    );
     const removed = selected;
     setSelected([]);
     setTimeout(() => {
-      setFading(f => f.filter(id => !removed.includes(id)));
+      setFading((f) => f.filter((id) => !removed.includes(id)));
       mutate();
     }, 300);
   }
 
   async function applyTag() {
     await Promise.all(
-      selected.map(id =>
+      selected.map((id) =>
         fetch(`/api/client/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -167,13 +196,13 @@ export default function ClientsPage() {
           <Input
             placeholder="Search clients..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             className="w-48"
           />
           <select
             className="rounded border p-1"
             value={sort}
-            onChange={e => setSort(e.target.value as any)}
+            onChange={(e) => setSort(e.target.value as any)}
           >
             <option value="name">Name</option>
             <option value="date">Date Added</option>
@@ -182,10 +211,10 @@ export default function ClientsPage() {
           <select
             className="rounded border p-1"
             value={tagFilter}
-            onChange={e => setTagFilter(e.target.value)}
+            onChange={(e) => setTagFilter(e.target.value)}
           >
             <option value="all">All Tags</option>
-            {tags.map(t => (
+            {tags.map((t) => (
               <option key={t} value={t}>
                 {t}
               </option>
@@ -193,8 +222,12 @@ export default function ClientsPage() {
           </select>
         </div>
         <div className="flex items-center justify-between gap-2 sm:justify-end">
-          <span className="text-sm text-gray-600">Total: {filtered.length}</span>
-          <Button onClick={exportCSV} className="whitespace-nowrap">Export CSV</Button>
+          <span className="text-sm text-gray-600">
+            Total: {filtered.length}
+          </span>
+          <Button onClick={exportCSV} className="whitespace-nowrap">
+            Export CSV
+          </Button>
           <Button onClick={openAdd} className="whitespace-nowrap">
             Add Client
           </Button>
@@ -207,10 +240,10 @@ export default function ClientsPage() {
           <select
             className="rounded border p-1"
             value={bulkTagValue}
-            onChange={e => setBulkTagValue(e.target.value)}
+            onChange={(e) => setBulkTagValue(e.target.value)}
           >
             <option value="">Tag...</option>
-            {tags.map(t => (
+            {tags.map((t) => (
               <option key={t} value={t}>
                 {t}
               </option>
@@ -223,12 +256,14 @@ export default function ClientsPage() {
 
       {paged.length < filtered.length && (
         <div className="flex justify-center">
-          <Button onClick={() => setPage(p => p + 1)}>Load more</Button>
+          <Button onClick={() => setPage((p) => p + 1)}>Load more</Button>
         </div>
       )}
 
       {error && (
-        <div className="text-red-500">Error loading clients: {error.message || String(error)}</div>
+        <div className="text-red-500">
+          Error loading clients: {error.message || String(error)}
+        </div>
       )}
       {!data && !error && (
         <div className="flex justify-center py-10">
@@ -243,37 +278,57 @@ export default function ClientsPage() {
       )}
       {filtered.length > 0 && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {paged.map(c => (
+          {paged.map((c) => (
             <Card
               key={c.id}
               className={`space-y-1 transition-opacity duration-300 fade-in ${fading.includes(c.id) ? "opacity-0" : ""}`}
               onClick={() => {
                 setDetail(c);
-                setForm(f => ({ ...f, notes: c.notes ?? "" }));
+                setForm((f) => ({ ...f, notes: c.notes ?? "" }));
               }}
             >
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={selected.includes(c.id)}
-                  onChange={e =>
-                    setSelected(s =>
-                      e.target.checked ? [...s, c.id] : s.filter(id => id !== c.id),
+                  onChange={(e) =>
+                    setSelected((s) =>
+                      e.target.checked
+                        ? [...s, c.id]
+                        : s.filter((id) => id !== c.id),
                     )
                   }
                 />
-                <Avatar label={(c.name || c.email || "?").slice(0, 2).toUpperCase()} />
-                <div className="flex-1 font-semibold">{c.name || "Unnamed"}</div>
-                {c.tag && <Badge className={tagColors[c.tag] || ""}>{c.tag}</Badge>}
+                <Avatar
+                  label={(c.name || c.email || "?").slice(0, 2).toUpperCase()}
+                />
+                <div className="flex-1 font-semibold">
+                  {c.name || "Unnamed"}
+                </div>
+                {c.tag && (
+                  <Badge className={tagColors[c.tag] || ""}>{c.tag}</Badge>
+                )}
               </div>
               <div className="text-sm text-gray-600">{c.company || "-"}</div>
               <div className="text-sm text-gray-600">{c.email || "-"}</div>
               <div className="text-sm text-gray-600">{c.phone || "-"}</div>
               <div className="mt-2 flex justify-end gap-2 text-sm">
-                <button onClick={e => { e.stopPropagation(); openEdit(c); }} className="text-blue-600 hover:underline">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEdit(c);
+                  }}
+                  className="text-blue-600 hover:underline"
+                >
                   Edit
                 </button>
-                <button onClick={e => { e.stopPropagation(); deleteClient(c.id); }} className="text-red-600 hover:underline">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteClient(c.id);
+                  }}
+                  className="text-red-600 hover:underline"
+                >
                   Delete
                 </button>
               </div>
@@ -283,33 +338,41 @@ export default function ClientsPage() {
       )}
 
       {showModal && (
-        <dialog open className="fixed inset-0 flex items-center justify-center bg-black/50">
-          <form onSubmit={saveClient} className="w-80 space-y-2 rounded bg-white p-4 shadow">
-            <h2 className="font-semibold">{editId ? "Edit Client" : "New Client"}</h2>
+        <dialog
+          open
+          className="fixed inset-0 flex items-center justify-center bg-black/50"
+        >
+          <form
+            onSubmit={saveClient}
+            className="w-80 space-y-2 rounded bg-white p-4 shadow"
+          >
+            <h2 className="font-semibold">
+              {editId ? "Edit Client" : "New Client"}
+            </h2>
             <Input
               placeholder="Name"
               value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
             <Input
               placeholder="Email"
               value={form.email}
-              onChange={e => setForm({ ...form, email: e.target.value })}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
             <Input
               placeholder="Phone"
               value={form.phone}
-              onChange={e => setForm({ ...form, phone: e.target.value })}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
             />
             <Input
               placeholder="Company"
               value={form.company}
-              onChange={e => setForm({ ...form, company: e.target.value })}
+              onChange={(e) => setForm({ ...form, company: e.target.value })}
             />
             <select
               className="w-full rounded border p-1"
               value={form.tag}
-              onChange={e => setForm({ ...form, tag: e.target.value })}
+              onChange={(e) => setForm({ ...form, tag: e.target.value })}
             >
               <option value="">No Tag</option>
               <option value="VIP">VIP</option>
@@ -318,7 +381,7 @@ export default function ClientsPage() {
             <Textarea
               placeholder="Notes"
               value={form.notes}
-              onChange={e => setForm({ ...form, notes: e.target.value })}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
             />
             <div className="flex justify-end gap-2">
               <Button type="button" onClick={() => setShowModal(false)}>
@@ -331,8 +394,15 @@ export default function ClientsPage() {
       )}
 
       {detail && (
-        <dialog open className="fixed inset-0 flex items-center justify-center bg-black/50" onClick={() => setDetail(null)}>
-          <div className="w-96 space-y-2 rounded bg-white p-4 shadow" onClick={e => e.stopPropagation()}>
+        <dialog
+          open
+          className="fixed inset-0 flex items-center justify-center bg-black/50"
+          onClick={() => setDetail(null)}
+        >
+          <div
+            className="w-96 space-y-2 rounded bg-white p-4 shadow"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2 className="font-semibold">{detail.name}</h2>
             <p className="text-sm text-gray-600">{detail.email}</p>
             <p className="text-sm text-gray-600">{detail.phone}</p>
@@ -342,7 +412,7 @@ export default function ClientsPage() {
             </p>
             <Textarea
               value={form.notes}
-              onChange={e => setForm({ ...form, notes: e.target.value })}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
               className="mt-2"
             />
             <div className="flex justify-end gap-2">
