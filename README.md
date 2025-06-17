@@ -1,6 +1,7 @@
 # Omni
 
 This repository uses Prisma with a PostgreSQL database.
+For monorepo details, see [omnibox/README.md](omnibox/README.md).
 
 ## Setup database
 
