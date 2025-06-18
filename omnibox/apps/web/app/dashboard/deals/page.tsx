@@ -39,11 +39,18 @@ interface DealExtra {
   deadline: string;
   notes: string;
   tag: string;
+  log: { time: number; action: string }[];
 }
 
 interface Stage {
   id: string;
   name: string;
+}
+
+interface Pipeline {
+  id: string;
+  name: string;
+  stages: Stage[];
 }
 
 function slugify(name: string) {
@@ -56,12 +63,16 @@ function DraggableCard({
   onSelect,
   onOpen,
   extra,
+  updateTitle,
+  isOpen,
 }: {
   deal: Deal;
   selected: boolean;
   onSelect: (checked: boolean) => void;
   onOpen: () => void;
   extra: DealExtra;
+  updateTitle: (title: string) => void;
+  isOpen: boolean;
 }) {
   const { tags } = useTags("deals");
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
@@ -71,12 +82,15 @@ function DraggableCard({
   const style = transform
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
     : undefined;
+  const [editing, setEditing] = useState(false);
   return (
     <Card
       ref={setNodeRef}
       style={style}
       onClick={onOpen}
-      className="relative mb-2 space-y-1 rounded bg-white p-2 shadow transition-transform"
+      className={`relative mb-2 space-y-1 rounded bg-white p-2 shadow transition-transform ${
+        isOpen ? "filter-none brightness-100 z-50" : ""
+      }`}
     >
       <span
         {...listeners}
@@ -94,8 +108,31 @@ function DraggableCard({
         className="absolute left-1 top-1"
         onClick={(e) => e.stopPropagation()}
       />
-      <div className="text-sm font-semibold">
-        {extra?.title || `Deal ${deal.id.slice(0, 4)}`}
+      <div className="flex items-center gap-1 text-sm font-semibold">
+        {editing ? (
+          <Input
+            autoFocus
+            value={extra?.title}
+            onChange={(e) => updateTitle(e.target.value)}
+            onBlur={() => setEditing(false)}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <>
+            <span>{extra?.title || `Deal ${deal.id.slice(0, 4)}`}</span>
+            <button
+              type="button"
+              className="ml-1 text-xs text-gray-500"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditing(true);
+              }}
+              aria-label="Edit title"
+            >
+              ✎
+            </button>
+          </>
+        )}
       </div>
       <div className="text-xs text-gray-600">
         {deal.contact.name || "Unnamed"}
@@ -140,17 +177,34 @@ function StageColumn({
   openDeal: (d: Deal) => void;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: stage, data: { stage } });
+  const [editing, setEditing] = useState(false);
   return (
     <div
       ref={setNodeRef}
       className={`space-y-2 rounded border p-2 ${isOver ? "bg-blue-50" : "bg-gray-50"}`}
     >
       <div className="mb-1 flex items-center gap-1">
-        <input
-          className="w-full rounded border px-1 text-sm font-semibold"
-          value={name}
-          onChange={(e) => onRename(e.target.value)}
-        />
+        {editing ? (
+          <Input
+            autoFocus
+            className="w-full"
+            value={name}
+            onChange={(e) => onRename(e.target.value)}
+            onBlur={() => setEditing(false)}
+          />
+        ) : (
+          <>
+            <span className="flex-1 text-sm font-semibold">{name}</span>
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="text-xs text-gray-500"
+              aria-label="Edit column"
+            >
+              ✎
+            </button>
+          </>
+        )}
         <button
           type="button"
           onClick={onDelete}
@@ -171,11 +225,28 @@ function StageColumn({
           onSelect={(c) => toggleSelect(d.id, c)}
           onOpen={() => openDeal(d)}
           extra={extras[d.id]}
+          updateTitle={(t) =>
+            setExtras((ex) => ({
+              ...ex,
+              [d.id]: {
+                ...ex[d.id],
+                title: t,
+              },
+            }))
+          }
+          isOpen={drawerDeal?.id === d.id}
         />
       ))}
     </div>
   );
 }
+
+const defaultStages: Stage[] = [
+  { id: "NEW", name: "NEW" },
+  { id: "IN_PROGRESS", name: "IN_PROGRESS" },
+  { id: "WAITING", name: "WAITING" },
+  { id: "DONE", name: "DONE" },
+];
 
 export default function DealsPage() {
   const { data, error, mutate } = useSWR<{ deals: Deal[] }>(
@@ -187,33 +258,36 @@ export default function DealsPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
-  const [stages, setStages] = useState<Stage[]>(() => {
-    if (typeof window === "undefined")
-      return [
-        { id: "NEW", name: "NEW" },
-        { id: "IN_PROGRESS", name: "IN_PROGRESS" },
-        { id: "WAITING", name: "WAITING" },
-        { id: "DONE", name: "DONE" },
-      ];
-    try {
-      const stored = JSON.parse(localStorage.getItem("dealStages") || "null");
-      return (
-        stored || [
-          { id: "NEW", name: "NEW" },
-          { id: "IN_PROGRESS", name: "IN_PROGRESS" },
-          { id: "WAITING", name: "WAITING" },
-          { id: "DONE", name: "DONE" },
-        ]
-      );
-    } catch {
-      return [
-        { id: "NEW", name: "NEW" },
-        { id: "IN_PROGRESS", name: "IN_PROGRESS" },
-        { id: "WAITING", name: "WAITING" },
-        { id: "DONE", name: "DONE" },
-      ];
+  const [pipelines, setPipelines] = useState<Record<string, Pipeline>>(() => {
+    if (typeof window === "undefined") {
+      return {
+        default: { id: "default", name: "Default", stages: defaultStages },
+      };
     }
+    try {
+      const stored = JSON.parse(localStorage.getItem("dealPipelines") || "null");
+      if (stored?.pipelines) return stored.pipelines;
+    } catch {}
+    return { default: { id: "default", name: "Default", stages: defaultStages } };
   });
+  const [currentPipeline, setCurrentPipeline] = useState<string>(() => {
+    if (typeof window === "undefined") return "default";
+    try {
+      const stored = JSON.parse(localStorage.getItem("dealPipelines") || "null");
+      if (stored?.current) return stored.current;
+    } catch {}
+    return "default";
+  });
+
+  const stages = pipelines[currentPipeline]?.stages || defaultStages;
+
+  function updateStages(newStages: Stage[]) {
+    setPipelines((p) => ({
+      ...p,
+      [currentPipeline]: { ...p[currentPipeline], stages: newStages },
+    }));
+  }
+
   const [showAdd, setShowAdd] = useState(false);
   const [showTags, setShowTags] = useState(false);
   const { data: contacts } = useSWR<{
@@ -236,6 +310,7 @@ export default function DealsPage() {
           deadline: "",
           notes: "",
           tag: "",
+          log: [],
           ...stored[k],
         };
       });
@@ -267,6 +342,7 @@ export default function DealsPage() {
             deadline: "",
             notes: "",
             tag: "",
+            log: [],
           };
         }
       });
@@ -282,9 +358,12 @@ export default function DealsPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      localStorage.setItem("dealStages", JSON.stringify(stages));
+      localStorage.setItem(
+        "dealPipelines",
+        JSON.stringify({ pipelines, current: currentPipeline })
+      );
     }
-  }, [stages]);
+  }, [pipelines, currentPipeline]);
 
   const filteredDeals = (data?.deals || []).filter((d) => {
     const ext = extras[d.id];
@@ -300,7 +379,7 @@ export default function DealsPage() {
     const newStage = over.data.current?.stage;
     const oldStage = active.data.current?.stage;
     if (!newStage || newStage === oldStage) return;
-    await moveDeal(String(active.id), newStage);
+    await moveDeal(String(active.id), newStage, oldStage);
     setLastMove({ id: String(active.id), from: oldStage, to: newStage });
     mutate();
     toast.success(`Moved to ${newStage.replace(/_/g, " ")}`, {
@@ -308,7 +387,7 @@ export default function DealsPage() {
         label: "Undo",
         onClick: async () => {
           if (lastMove) {
-            await moveDeal(lastMove.id, lastMove.from);
+            await moveDeal(lastMove.id, lastMove.from, lastMove.to);
             mutate();
           }
         },
@@ -334,22 +413,54 @@ export default function DealsPage() {
   async function addDeal(e: React.FormEvent) {
     e.preventDefault();
     if (!contactId) return;
-    await fetch("/api/deals", {
+    const res = await fetch("/api/deals", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contactId }),
     });
+    const json = await res.json();
+    if (json.deal) {
+      setExtras((ex) => ({
+        ...ex,
+        [json.deal.id]: {
+          title: "",
+          value: 0,
+          probability: 50,
+          closeDate: "",
+          hasDeadline: false,
+          deadline: "",
+          notes: "",
+          tag: "",
+          log: [{ time: Date.now(), action: "Deal added" }],
+        },
+      }));
+    }
     setShowAdd(false);
     setContactId("");
     mutate();
   }
 
-  async function moveDeal(id: string, stage: string) {
+  async function moveDeal(id: string, stage: string, from?: string) {
     await fetch(`/api/deal/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ stage }),
     });
+    setExtras((ex) => ({
+      ...ex,
+      [id]: {
+        ...ex[id],
+        log: [
+          ...(ex[id]?.log || []),
+          {
+            time: Date.now(),
+            action: from
+              ? `Moved from ${from} to ${stage}`
+              : `Moved to ${stage}`,
+          },
+        ],
+      },
+    }));
   }
 
   async function moveSelected(stage: string) {
@@ -410,9 +521,37 @@ export default function DealsPage() {
   if (!mounted) return null;
 
   return (
-    <div className="space-y-4">
+    <div className={drawerDeal ? "space-y-4 filter blur-sm brightness-50" : "space-y-4"}>
       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
         <div className="flex flex-wrap items-end gap-2">
+          <select
+            className="rounded border p-1"
+            value={currentPipeline}
+            onChange={(e) => setCurrentPipeline(e.target.value)}
+          >
+            {Object.values(pipelines).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <Button
+            type="button"
+            onClick={() => {
+              const name = prompt("Pipeline name?");
+              if (name) {
+                const id = slugify(name);
+                setPipelines((pl) => ({
+                  ...pl,
+                  [id]: { id, name, stages: defaultStages },
+                }));
+                setCurrentPipeline(id);
+              }
+            }}
+            className="hover:bg-gray-100"
+          >
+            Add Pipeline
+          </Button>
           <Input
             placeholder="Search by contact"
             value={search}
@@ -444,7 +583,7 @@ export default function DealsPage() {
               const name = prompt("Column name?");
               if (name) {
                 const id = slugify(name);
-                setStages((st) => [...st, { id, name }]);
+                updateStages([...stages, { id, name }]);
               }
             }}
             className="hover:bg-gray-100"
@@ -536,12 +675,12 @@ export default function DealsPage() {
                 stage={stage.id}
                 name={stage.name}
                 onRename={(name) =>
-                  setStages((st) =>
-                    st.map((s) => (s.id === stage.id ? { ...s, name } : s)),
+                  updateStages(
+                    stages.map((s) => (s.id === stage.id ? { ...s, name } : s)),
                   )
                 }
                 onDelete={() =>
-                  setStages((st) => st.filter((s) => s.id !== stage.id))
+                  updateStages(stages.filter((s) => s.id !== stage.id))
                 }
                 deals={dealsByStage[stage.id]}
                 extras={extras}
@@ -564,7 +703,7 @@ export default function DealsPage() {
       {showAdd && (
         <dialog
           open
-          className="fixed inset-0 flex items-center justify-center bg-black/50"
+          className="fixed inset-0 flex items-start justify-start bg-black/50"
         >
           <form
             onSubmit={addDeal}
@@ -637,21 +776,6 @@ export default function DealsPage() {
                   [drawerDeal.id]: {
                     ...ex[drawerDeal.id],
                     value: Number(e.target.value),
-                  },
-                }))
-              }
-            />
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={extras[drawerDeal.id]?.probability ?? 50}
-              onChange={(e) =>
-                setExtras((ex) => ({
-                  ...ex,
-                  [drawerDeal.id]: {
-                    ...ex[drawerDeal.id],
-                    probability: Number(e.target.value),
                   },
                 }))
               }
@@ -732,6 +856,16 @@ export default function DealsPage() {
                 }))
               }
             />
+            <div className="mt-2 space-y-1">
+              <h3 className="text-sm font-semibold">Activity Log</h3>
+              <ul className="max-h-32 overflow-auto text-xs">
+                {extras[drawerDeal.id]?.log?.map((l, idx) => (
+                  <li key={idx}>
+                    {new Date(l.time).toLocaleString()}: {l.action}
+                  </li>
+                ))}
+              </ul>
+            </div>
             <div className="flex gap-2">
               <Button type="button">Add Next Activity</Button>
               <Button type="button">Attach File</Button>
