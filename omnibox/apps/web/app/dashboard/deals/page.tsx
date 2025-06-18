@@ -165,6 +165,7 @@ function StageColumn({
   selected,
   toggleSelect,
   openDeal,
+  drawerDeal,
 }: {
   stage: string;
   name: string;
@@ -175,6 +176,7 @@ function StageColumn({
   selected: Set<string>;
   toggleSelect: (id: string, checked: boolean) => void;
   openDeal: (d: Deal) => void;
+  drawerDeal: Deal | null;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: stage, data: { stage } });
   const [editing, setEditing] = useState(false);
@@ -694,6 +696,7 @@ export default function DealsPage() {
                   })
                 }
                 openDeal={(d) => setDrawerDeal(d)}
+                drawerDeal={drawerDeal}
               />
             ))}
           </div>
