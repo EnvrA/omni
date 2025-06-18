@@ -214,7 +214,11 @@ export default function ClientsPage() {
               </option>
             ))}
           </select>
-          <Button type="button" onClick={() => setShowTags(true)}>
+          <Button
+            type="button"
+            onClick={() => setShowTags(true)}
+            className="hover:bg-gray-100"
+          >
             Manage Tags
           </Button>
         </div>
@@ -227,7 +231,7 @@ export default function ClientsPage() {
           </Button>
           <Button
             onClick={openAdd}
-            className="whitespace-nowrap border-green-700 bg-green-600 text-white hover:bg-green-700"
+            className="whitespace-nowrap border-green-700 bg-green-600 text-white hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
           >
             Add Client
           </Button>
@@ -256,7 +260,7 @@ export default function ClientsPage() {
           <span>No clients yet.</span>
           <Button
             onClick={openAdd}
-            className="border-green-700 bg-green-600 text-white hover:bg-green-700"
+            className="border-green-700 bg-green-600 text-white hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
           >
             Add your first client
           </Button>
@@ -435,7 +439,7 @@ export default function ClientsPage() {
               </Button>
               <Button
                 type="submit"
-                className="border-green-700 bg-green-600 text-white hover:bg-green-700"
+                className="border-green-700 bg-green-600 text-white hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
               >
                 Save
               </Button>
@@ -530,7 +534,7 @@ export default function ClientsPage() {
               </Button>
               <Button
                 type="button"
-                className="border-green-700 bg-green-600 text-white hover:bg-green-700"
+                className="border-green-700 bg-green-600 text-white hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
                 onClick={async () => {
                   await fetch(`/api/client/${detail.id}`, {
                     method: "PATCH",
