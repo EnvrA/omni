@@ -6,7 +6,13 @@ import { Input, Button, Card, Avatar, Badge, Textarea } from "@/components/ui";
 import { toast } from "sonner";
 import { useTags } from "@/components/tags-context";
 import { TagManager } from "@/components/tag-manager";
-import { Edit3, Trash } from "lucide-react";
+import {
+  Edit3,
+  Trash,
+  Mail,
+  Phone,
+  MessageCircle,
+} from "lucide-react";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -29,6 +35,20 @@ interface Client {
   avatar?: string | null;
   createdAt: string;
   lastActivity: string;
+}
+
+interface Deal {
+  id: string;
+  stage: string;
+  contactId: string;
+  title?: string | null;
+  value?: number | null;
+}
+
+interface Message {
+  id: string;
+  body: string;
+  sentAt: string;
 }
 
 export default function ClientsPage() {
@@ -57,6 +77,12 @@ export default function ClientsPage() {
   const [showTags, setShowTags] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmText, setConfirmText] = useState("");
+
+  const { data: deals } = useSWR<{ deals: Deal[] }>("/api/deals", fetcher);
+  const { data: messages } = useSWR<{ messages: Message[] }>(
+    detail ? `/api/messages?contactId=${detail.id}` : null,
+    fetcher,
+  );
 
   const openAdd = () => {
     setForm({
@@ -199,7 +225,10 @@ export default function ClientsPage() {
           <Button onClick={exportCSV} className="whitespace-nowrap">
             Export CSV
           </Button>
-          <Button onClick={openAdd} className="whitespace-nowrap">
+          <Button
+            onClick={openAdd}
+            className="whitespace-nowrap bg-green-600 text-white hover:bg-green-700"
+          >
             Add Client
           </Button>
         </div>
@@ -225,7 +254,12 @@ export default function ClientsPage() {
         <div className="flex flex-col items-center gap-4 py-20 text-gray-500">
           <img src="/globe.svg" alt="empty" className="h-24 w-24 opacity-75" />
           <span>No clients yet.</span>
-          <Button onClick={openAdd}>Add your first client</Button>
+          <Button
+            onClick={openAdd}
+            className="bg-green-600 text-white hover:bg-green-700"
+          >
+            Add your first client
+          </Button>
         </div>
       )}
       {filtered.length > 0 && (
@@ -262,6 +296,33 @@ export default function ClientsPage() {
                   </div>
                 </div>
                 <div className="flex gap-1 pt-1">
+                  {c.email && (
+                    <a
+                      href={`mailto:${c.email}`}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label="Email client"
+                    >
+                      <Mail className="h-4 w-4" />
+                    </a>
+                  )}
+                  {c.phone && (
+                    <a
+                      href={`tel:${c.phone}`}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label="Call client"
+                    >
+                      <Phone className="h-4 w-4" />
+                    </a>
+                  )}
+                  {c.phone && (
+                    <a
+                      href={`https://wa.me/${c.phone.replace(/\D/g, "")}`}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label="WhatsApp client"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                    </a>
+                  )}
                   <button
                     title="Edit"
                     onClick={(e) => {
@@ -278,7 +339,7 @@ export default function ClientsPage() {
                       setConfirmDelete(c.id);
                     }}
                   >
-                    <Trash className="h-4 w-4" />
+                    <Trash className="h-4 w-4 hover:text-red-600" />
                   </button>
                 </div>
               </div>
@@ -366,7 +427,12 @@ export default function ClientsPage() {
               <Button type="button" onClick={() => setShowModal(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Save</Button>
+              <Button
+                type="submit"
+                className="bg-green-600 text-white hover:bg-green-700"
+              >
+                Save
+              </Button>
             </div>
           </form>
         </div>
@@ -394,6 +460,59 @@ export default function ClientsPage() {
             <p className="text-sm text-gray-600">{detail.email}</p>
             <p className="text-sm text-gray-600">{detail.phone}</p>
             <p className="text-sm text-gray-600">{detail.company}</p>
+
+            {(() => {
+              const list = deals?.deals?.filter(
+                (d) => d.contactId === detail.id,
+              ) ?? [];
+              const total = list.reduce(
+                (sum, d) => sum + (d.value ?? 0),
+                0,
+              );
+              return (
+                <div className="space-y-2">
+                  <h3 className="mt-2 font-semibold">Deals</h3>
+                  {list.length === 0 && (
+                    <p className="text-sm text-gray-500">No deals</p>
+                  )}
+                  {list.length > 0 && (
+                    <ul className="space-y-1 text-sm">
+                      {list.map((d) => (
+                        <li
+                          key={d.id}
+                          className="flex justify-between border-b py-1"
+                        >
+                          <span>{d.title || `Deal ${d.id.slice(0, 4)}`}</span>
+                          <span>
+                            {d.value != null ? `$${d.value}` : "N/A"}
+                          </span>
+                        </li>
+                      ))}
+                      <li className="flex justify-between font-semibold">
+                        <span>Total</span>
+                        <span>${total}</span>
+                      </li>
+                    </ul>
+                  )}
+                </div>
+              );
+            })()}
+
+            {messages && (
+              <div className="space-y-1">
+                <h3 className="mt-4 font-semibold">Recent Messages</h3>
+                <ul className="max-h-40 space-y-1 overflow-auto text-sm">
+                  {messages.messages.map((m) => (
+                    <li key={m.id} className="border-b py-1">
+                      <span className="mr-2 text-gray-500">
+                        {new Date(m.sentAt).toLocaleDateString()}
+                      </span>
+                      {m.body}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <Textarea
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -405,6 +524,7 @@ export default function ClientsPage() {
               </Button>
               <Button
                 type="button"
+                className="bg-green-600 text-white hover:bg-green-700"
                 onClick={async () => {
                   await fetch(`/api/client/${detail.id}`, {
                     method: "PATCH",
