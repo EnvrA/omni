@@ -101,6 +101,9 @@ function DraggableCard({
         {deal.contact.name || "Unnamed"}
       </div>
       <div className="text-xs text-gray-500">Value: ${extra?.value ?? 0}</div>
+      {extra?.hasDeadline && extra.deadline && (
+        <div className="text-xs text-red-600">Due: {extra.deadline}</div>
+      )}
       {extra?.tag && (
         <span
           className="inline-block rounded-full px-2 py-0.5 text-[10px] text-white"
@@ -119,6 +122,7 @@ function StageColumn({
   stage,
   name,
   onRename,
+  onDelete,
   deals,
   extras,
   selected,
@@ -128,6 +132,7 @@ function StageColumn({
   stage: string;
   name: string;
   onRename: (name: string) => void;
+  onDelete: () => void;
   deals: Deal[];
   extras: Record<string, DealExtra>;
   selected: Set<string>;
@@ -140,11 +145,21 @@ function StageColumn({
       ref={setNodeRef}
       className={`space-y-2 rounded border p-2 ${isOver ? "bg-blue-50" : "bg-gray-50"}`}
     >
-      <input
-        className="mb-1 w-full rounded border px-1 text-sm font-semibold"
-        value={name}
-        onChange={(e) => onRename(e.target.value)}
-      />
+      <div className="mb-1 flex items-center gap-1">
+        <input
+          className="w-full rounded border px-1 text-sm font-semibold"
+          value={name}
+          onChange={(e) => onRename(e.target.value)}
+        />
+        <button
+          type="button"
+          onClick={onDelete}
+          aria-label="Delete column"
+          className="rounded px-1 text-xs text-gray-500 hover:text-red-600"
+        >
+          ✕
+        </button>
+      </div>
       {deals.length === 0 && (
         <div className="text-sm text-gray-500">No deals</div>
       )}
@@ -168,6 +183,11 @@ export default function DealsPage() {
     fetcher,
   );
   const { tags } = useTags("deals");
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  if (!mounted) return null;
   const [stages, setStages] = useState<Stage[]>(() => {
     if (typeof window === "undefined")
       return [
@@ -519,6 +539,9 @@ export default function DealsPage() {
                     st.map((s) => (s.id === stage.id ? { ...s, name } : s)),
                   )
                 }
+                onDelete={() =>
+                  setStages((st) => st.filter((s) => s.id !== stage.id))
+                }
                 deals={dealsByStage[stage.id]}
                 extras={extras}
                 selected={selectedIds}
@@ -718,13 +741,13 @@ export default function DealsPage() {
               <Button type="button" onClick={() => setDrawerDeal(null)}>
                 Close
               </Button>
-              <Button
+              <button
                 type="button"
                 onClick={handleSave}
-                className="border-green-700 bg-green-600 text-white"
+                className="rounded border border-green-700 bg-green-600 px-3 py-1 text-white shadow-sm"
               >
                 Save
-              </Button>
+              </button>
             </div>
           </div>
         </div>
