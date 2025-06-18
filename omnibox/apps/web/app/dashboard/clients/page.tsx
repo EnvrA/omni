@@ -4,6 +4,9 @@ import useSWR from "swr";
 import { useState } from "react";
 import { Input, Button, Card, Avatar, Badge, Textarea } from "@/components/ui";
 import { toast } from "sonner";
+import { useTags } from "@/components/tags-context";
+import { TagManager } from "@/components/tag-manager";
+import { Edit3, Trash } from "lucide-react";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -23,25 +26,48 @@ interface Client {
   company: string | null;
   notes: string | null;
   tag: string | null;
+  avatar?: string | null;
   createdAt: string;
   lastActivity: string;
 }
 
 export default function ClientsPage() {
-  const { data, error, mutate } = useSWR<{ clients: Client[] }>("/api/clients", fetcher);
+  const { data, error, mutate } = useSWR<{ clients: Client[] }>(
+    "/api/clients",
+    fetcher,
+  );
+  const { tags } = useTags();
   const [showModal, setShowModal] = useState(false);
   const [detail, setDetail] = useState<Client | null>(null);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", company: "", notes: "", tag: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    company: "",
+    notes: "",
+    tag: "",
+    avatar: "",
+  });
   const [editId, setEditId] = useState<string>();
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"name" | "date" | "activity">("name");
   const [tagFilter, setTagFilter] = useState("all");
-  const [selected, setSelected] = useState<string[]>([]);
   const PAGE_SIZE = 8;
   const [page, setPage] = useState(1);
+  const [showTags, setShowTags] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [confirmText, setConfirmText] = useState("");
 
   const openAdd = () => {
-    setForm({ name: "", email: "", phone: "", company: "", notes: "", tag: "" });
+    setForm({
+      name: "",
+      email: "",
+      phone: "",
+      company: "",
+      notes: "",
+      tag: "",
+      avatar: "",
+    });
     setEditId(undefined);
     setShowModal(true);
   };
@@ -54,14 +80,15 @@ export default function ClientsPage() {
       company: c.company ?? "",
       notes: c.notes ?? "",
       tag: c.tag ?? "",
+      avatar: c.avatar ?? "",
     });
     setEditId(c.id);
     setShowModal(true);
   };
 
   const filtered = (data?.clients ?? [])
-    .filter(c => tagFilter === "all" || c.tag === tagFilter)
-    .filter(c => {
+    .filter((c) => tagFilter === "all" || c.tag === tagFilter)
+    .filter((c) => {
       const q = search.toLowerCase();
       return (
         c.name?.toLowerCase().includes(q) ||
@@ -73,9 +100,15 @@ export default function ClientsPage() {
     })
     .sort((a, b) => {
       if (sort === "name") return (a.name || "").localeCompare(b.name || "");
-      if (sort === "date") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (sort === "date")
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
       if (sort === "activity")
-        return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
+        return (
+          new Date(b.lastActivity).getTime() -
+          new Date(a.lastActivity).getTime()
+        );
       return 0;
     });
 
@@ -110,9 +143,11 @@ export default function ClientsPage() {
   function exportCSV() {
     const rows = [
       ["Name", "Email", "Phone", "Company", "Tag"],
-      ...paged.map(c => [c.name, c.email, c.phone, c.company, c.tag]),
+      ...paged.map((c) => [c.name, c.email, c.phone, c.company, c.tag]),
     ];
-    const csv = rows.map(r => r.map(v => `"${v ?? ""}"`).join(",")).join("\n");
+    const csv = rows
+      .map((r) => r.map((v) => `"${v ?? ""}"`).join(","))
+      .join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -122,12 +157,6 @@ export default function ClientsPage() {
     URL.revokeObjectURL(url);
   }
 
-  async function bulkDelete() {
-    await Promise.all(selected.map(id => fetch(`/api/client/${id}`, { method: "DELETE" })));
-    setSelected([]);
-    mutate();
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
@@ -135,13 +164,13 @@ export default function ClientsPage() {
           <Input
             placeholder="Search clients..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             className="w-48"
           />
           <select
             className="rounded border p-1"
             value={sort}
-            onChange={e => setSort(e.target.value as any)}
+            onChange={(e) => setSort(e.target.value as any)}
           >
             <option value="name">Name</option>
             <option value="date">Date Added</option>
@@ -150,37 +179,42 @@ export default function ClientsPage() {
           <select
             className="rounded border p-1"
             value={tagFilter}
-            onChange={e => setTagFilter(e.target.value)}
+            onChange={(e) => setTagFilter(e.target.value)}
           >
             <option value="all">All Tags</option>
-            <option value="VIP">VIP</option>
-            <option value="New Client">New Client</option>
+            {tags.map((t) => (
+              <option key={t.id} value={t.name}>
+                {t.name}
+              </option>
+            ))}
           </select>
+          <Button type="button" onClick={() => setShowTags(true)}>
+            Manage Tags
+          </Button>
         </div>
         <div className="flex items-center justify-between gap-2 sm:justify-end">
-          <span className="text-sm text-gray-600">Total: {filtered.length}</span>
-          <Button onClick={exportCSV} className="whitespace-nowrap">Export CSV</Button>
+          <span className="text-sm text-gray-600">
+            Total: {filtered.length}
+          </span>
+          <Button onClick={exportCSV} className="whitespace-nowrap">
+            Export CSV
+          </Button>
           <Button onClick={openAdd} className="whitespace-nowrap">
             Add Client
           </Button>
         </div>
       </div>
 
-      {selected.length > 0 && (
-        <div className="flex gap-2">
-          <span className="text-sm">{selected.length} selected</span>
-          <Button onClick={bulkDelete}>Delete</Button>
-        </div>
-      )}
-
       {paged.length < filtered.length && (
         <div className="flex justify-center">
-          <Button onClick={() => setPage(p => p + 1)}>Load more</Button>
+          <Button onClick={() => setPage((p) => p + 1)}>Load more</Button>
         </div>
       )}
 
       {error && (
-        <div className="text-red-500">Error loading clients: {error.message || String(error)}</div>
+        <div className="text-red-500">
+          Error loading clients: {error.message || String(error)}
+        </div>
       )}
       {!data && !error && (
         <div className="flex justify-center py-10">
@@ -188,89 +222,142 @@ export default function ClientsPage() {
         </div>
       )}
       {data && filtered.length === 0 && (
-        <div className="flex flex-col items-center gap-4 py-10 text-gray-500">
-          <img src="/globe.svg" alt="empty" className="h-20 w-20" />
-          <span>No clients yet. Add your first one!</span>
+        <div className="flex flex-col items-center gap-4 py-20 text-gray-500">
+          <img src="/globe.svg" alt="empty" className="h-24 w-24 opacity-75" />
+          <span>No clients yet.</span>
+          <Button onClick={openAdd}>Add your first client</Button>
         </div>
       )}
       {filtered.length > 0 && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {paged.map(c => (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {paged.map((c) => (
             <Card
               key={c.id}
-              className="space-y-1 transition-opacity"
+              className="space-y-1 rounded-lg shadow-sm transition-transform hover:scale-[1.02] hover:shadow-md"
               onClick={() => {
                 setDetail(c);
-                setForm(f => ({ ...f, notes: c.notes ?? "" }));
+                setForm((f) => ({ ...f, notes: c.notes ?? "" }));
               }}
             >
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={selected.includes(c.id)}
-                  onChange={e =>
-                    setSelected(s =>
-                      e.target.checked ? [...s, c.id] : s.filter(id => id !== c.id),
-                    )
-                  }
+              <div className="flex items-start gap-2">
+                <Avatar
+                  src={c.avatar ?? undefined}
+                  label={(c.name || c.email || "?").slice(0, 2).toUpperCase()}
                 />
-                <Avatar label={(c.name || c.email || "?").slice(0, 2).toUpperCase()} />
-                <div className="flex-1 font-semibold">{c.name || "Unnamed"}</div>
-                {c.tag && <Badge>{c.tag}</Badge>}
+                <div className="flex-1">
+                  <div className="font-semibold">{c.name || "Unnamed"}</div>
+                  <div className="text-xs text-gray-600">{c.email || "-"}</div>
+                  <div className="text-xs text-gray-600">{c.phone || "-"}</div>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {c.tag && (
+                      <Badge
+                        style={{
+                          background: tags.find((t) => t.name === c.tag)?.color,
+                        }}
+                      >
+                        {c.tag}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-1 pt-1">
+                  <button
+                    title="Edit"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEdit(c);
+                    }}
+                  >
+                    <Edit3 className="h-4 w-4" />
+                  </button>
+                  <button
+                    title="Delete"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setConfirmDelete(c.id);
+                    }}
+                  >
+                    <Trash className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
               <div className="text-sm text-gray-600">{c.company || "-"}</div>
-              <div className="text-sm text-gray-600">{c.email || "-"}</div>
-              <div className="text-sm text-gray-600">{c.phone || "-"}</div>
-              <div className="mt-2 flex justify-end gap-2 text-sm">
-                <button onClick={e => { e.stopPropagation(); openEdit(c); }} className="text-blue-600 hover:underline">
-                  Edit
-                </button>
-                <button onClick={e => { e.stopPropagation(); deleteClient(c.id); }} className="text-red-600 hover:underline">
-                  Delete
-                </button>
-              </div>
             </Card>
           ))}
         </div>
       )}
 
       {showModal && (
-        <dialog open className="fixed inset-0 flex items-center justify-center bg-black/50">
-          <form onSubmit={saveClient} className="w-80 space-y-2 rounded bg-white p-4 shadow">
-            <h2 className="font-semibold">{editId ? "Edit Client" : "New Client"}</h2>
+        <dialog
+          open
+          className="fixed inset-0 flex items-center justify-center bg-black/50"
+        >
+          <form
+            onSubmit={saveClient}
+            className="w-80 space-y-2 rounded bg-white p-4 shadow"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-semibold">
+              {editId ? "Edit Client" : "New Client"}
+            </h2>
+            {form.avatar && (
+              <img
+                src={form.avatar}
+                alt="avatar"
+                className="h-16 w-16 rounded-full object-cover"
+              />
+            )}
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) =>
+                  setForm((f) => ({
+                    ...f,
+                    avatar: ev.target?.result as string,
+                  }));
+                reader.readAsDataURL(file);
+              }}
+            />
             <Input
               placeholder="Name"
               value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
             <Input
               placeholder="Email"
               value={form.email}
-              onChange={e => setForm({ ...form, email: e.target.value })}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
             <Input
               placeholder="Phone"
               value={form.phone}
-              onChange={e => setForm({ ...form, phone: e.target.value })}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
             />
             <Input
               placeholder="Company"
               value={form.company}
-              onChange={e => setForm({ ...form, company: e.target.value })}
+              onChange={(e) => setForm({ ...form, company: e.target.value })}
             />
             <select
               className="w-full rounded border p-1"
               value={form.tag}
-              onChange={e => setForm({ ...form, tag: e.target.value })}
+              onChange={(e) => setForm({ ...form, tag: e.target.value })}
             >
               <option value="">No Tag</option>
-              <option value="VIP">VIP</option>
-              <option value="New Client">New Client</option>
+              {tags.map((t) => (
+                <option key={t.id} value={t.name}>
+                  {t.name}
+                </option>
+              ))}
             </select>
             <Textarea
               placeholder="Notes"
               value={form.notes}
-              onChange={e => setForm({ ...form, notes: e.target.value })}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
             />
             <div className="flex justify-end gap-2">
               <Button type="button" onClick={() => setShowModal(false)}>
@@ -283,15 +370,29 @@ export default function ClientsPage() {
       )}
 
       {detail && (
-        <dialog open className="fixed inset-0 flex items-center justify-center bg-black/50" onClick={() => setDetail(null)}>
-          <div className="w-96 space-y-2 rounded bg-white p-4 shadow" onClick={e => e.stopPropagation()}>
+        <dialog
+          open
+          className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur"
+          onClick={() => setDetail(null)}
+        >
+          <div
+            className="w-full max-w-lg space-y-2 rounded-xl bg-white p-4 shadow"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {detail.avatar && (
+              <img
+                src={detail.avatar}
+                alt="avatar"
+                className="h-20 w-20 rounded-full object-cover"
+              />
+            )}
             <h2 className="font-semibold">{detail.name}</h2>
             <p className="text-sm text-gray-600">{detail.email}</p>
             <p className="text-sm text-gray-600">{detail.phone}</p>
             <p className="text-sm text-gray-600">{detail.company}</p>
             <Textarea
               value={form.notes}
-              onChange={e => setForm({ ...form, notes: e.target.value })}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
               className="mt-2"
             />
             <div className="flex justify-end gap-2">
@@ -316,6 +417,43 @@ export default function ClientsPage() {
           </div>
         </dialog>
       )}
+
+      {confirmDelete && (
+        <dialog
+          open
+          className="fixed inset-0 flex items-center justify-center bg-black/50"
+          onClick={() => setConfirmDelete(null)}
+        >
+          <div
+            className="space-y-2 rounded bg-white p-4 shadow"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm">Type DELETE to confirm</p>
+            <Input
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+            />
+            <div className="flex justify-end gap-2">
+              <Button type="button" onClick={() => setConfirmDelete(null)}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={confirmText !== "DELETE"}
+                onClick={() => {
+                  deleteClient(confirmDelete);
+                  setConfirmDelete(null);
+                  setConfirmText("");
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </dialog>
+      )}
+
+      <TagManager open={showTags} onClose={() => setShowTags(false)} />
     </div>
   );
 }
