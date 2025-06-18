@@ -6,13 +6,7 @@ import { Input, Button, Card, Avatar, Badge, Textarea } from "@/components/ui";
 import { toast } from "sonner";
 import { useTags } from "@/components/tags-context";
 import { TagManager } from "@/components/tag-manager";
-import {
-  Edit3,
-  Trash,
-  Mail,
-  Phone,
-  MessageCircle,
-} from "lucide-react";
+import { Edit3, Trash, Mail, Phone, MessageCircle } from "lucide-react";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -56,7 +50,7 @@ export default function ClientsPage() {
     "/api/clients",
     fetcher,
   );
-  const { tags } = useTags();
+  const { tags } = useTags("clients");
   const [showModal, setShowModal] = useState(false);
   const [detail, setDetail] = useState<Client | null>(null);
   const [form, setForm] = useState({
@@ -472,13 +466,9 @@ export default function ClientsPage() {
             <p className="text-sm text-gray-600">{detail.company}</p>
 
             {(() => {
-              const list = deals?.deals?.filter(
-                (d) => d.contactId === detail.id,
-              ) ?? [];
-              const total = list.reduce(
-                (sum, d) => sum + (d.value ?? 0),
-                0,
-              );
+              const list =
+                deals?.deals?.filter((d) => d.contactId === detail.id) ?? [];
+              const total = list.reduce((sum, d) => sum + (d.value ?? 0), 0);
               return (
                 <div className="space-y-2">
                   <h3 className="mt-2 font-semibold">Deals</h3>
@@ -493,9 +483,7 @@ export default function ClientsPage() {
                           className="flex justify-between border-b py-1"
                         >
                           <span>{d.title || `Deal ${d.id.slice(0, 4)}`}</span>
-                          <span>
-                            {d.value != null ? `$${d.value}` : "N/A"}
-                          </span>
+                          <span>{d.value != null ? `$${d.value}` : "N/A"}</span>
                         </li>
                       ))}
                       <li className="flex justify-between font-semibold">
@@ -587,7 +575,11 @@ export default function ClientsPage() {
         </dialog>
       )}
 
-      <TagManager open={showTags} onClose={() => setShowTags(false)} />
+      <TagManager
+        type="clients"
+        open={showTags}
+        onClose={() => setShowTags(false)}
+      />
     </div>
   );
 }
