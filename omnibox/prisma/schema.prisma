@@ -51,6 +51,7 @@ model Contact {
   company  String?
   notes    String?
   tag      String?
+  avatar   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
   messages Message[]

@@ -62,17 +62,17 @@ export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
 
 export const Badge = ({
   className = "",
+  style,
   children,
 }: {
   className?: string;
+  style?: React.CSSProperties;
   children: React.ReactNode;
 }) => {
   return (
     <span
-      className={
-        "rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800 " +
-        className
-      }
+      style={style}
+      className={"rounded-full px-2 py-0.5 text-xs " + className}
     >
       {children}
     </span>

@@ -41,7 +41,13 @@ export function TagManager({
               value={t.color}
               onChange={(e) => updateTag(t.id, { color: e.target.value })}
             />
-            <button onClick={() => deleteTag(t.id)} className="text-red-600">
+            <button
+              onClick={() => {
+                if (confirm(`Delete tag '${t.name}'?`)) deleteTag(t.id);
+              }}
+              className="text-red-600"
+              aria-label={`Delete tag ${t.name}`}
+            >
               ✕
             </button>
           </div>
