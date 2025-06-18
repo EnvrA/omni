@@ -31,14 +31,24 @@ interface Deal {
 }
 
 interface DealExtra {
+  title: string;
   value: number;
   probability: number;
   closeDate: string;
+  hasDeadline: boolean;
+  deadline: string;
   notes: string;
   tag: string;
 }
 
-const stages = ["NEW", "IN_PROGRESS", "WAITING", "DONE"] as const;
+interface Stage {
+  id: string;
+  name: string;
+}
+
+function slugify(name: string) {
+  return name.trim().toUpperCase().replace(/\s+/g, "_");
+}
 
 function DraggableCard({
   deal,
@@ -53,7 +63,7 @@ function DraggableCard({
   onOpen: () => void;
   extra: DealExtra;
 }) {
-  const { tags } = useTags();
+  const { tags } = useTags("deals");
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: deal.id,
     data: { stage: deal.stage },
@@ -84,7 +94,9 @@ function DraggableCard({
         className="absolute left-1 top-1"
         onClick={(e) => e.stopPropagation()}
       />
-      <div className="text-sm font-semibold">Deal {deal.id.slice(0, 4)}</div>
+      <div className="text-sm font-semibold">
+        {extra?.title || `Deal ${deal.id.slice(0, 4)}`}
+      </div>
       <div className="text-xs text-gray-600">
         {deal.contact.name || "Unnamed"}
       </div>
@@ -105,6 +117,8 @@ function DraggableCard({
 
 function StageColumn({
   stage,
+  name,
+  onRename,
   deals,
   extras,
   selected,
@@ -112,6 +126,8 @@ function StageColumn({
   openDeal,
 }: {
   stage: string;
+  name: string;
+  onRename: (name: string) => void;
   deals: Deal[];
   extras: Record<string, DealExtra>;
   selected: Set<string>;
@@ -124,7 +140,11 @@ function StageColumn({
       ref={setNodeRef}
       className={`space-y-2 rounded border p-2 ${isOver ? "bg-blue-50" : "bg-gray-50"}`}
     >
-      <h2 className="mb-1 text-sm font-semibold">{stage.replace(/_/g, " ")}</h2>
+      <input
+        className="mb-1 w-full rounded border px-1 text-sm font-semibold"
+        value={name}
+        onChange={(e) => onRename(e.target.value)}
+      />
       {deals.length === 0 && (
         <div className="text-sm text-gray-500">No deals</div>
       )}
@@ -147,7 +167,34 @@ export default function DealsPage() {
     "/api/deals",
     fetcher,
   );
-  const { tags } = useTags();
+  const { tags } = useTags("deals");
+  const [stages, setStages] = useState<Stage[]>(() => {
+    if (typeof window === "undefined")
+      return [
+        { id: "NEW", name: "NEW" },
+        { id: "IN_PROGRESS", name: "IN_PROGRESS" },
+        { id: "WAITING", name: "WAITING" },
+        { id: "DONE", name: "DONE" },
+      ];
+    try {
+      const stored = JSON.parse(localStorage.getItem("dealStages") || "null");
+      return (
+        stored || [
+          { id: "NEW", name: "NEW" },
+          { id: "IN_PROGRESS", name: "IN_PROGRESS" },
+          { id: "WAITING", name: "WAITING" },
+          { id: "DONE", name: "DONE" },
+        ]
+      );
+    } catch {
+      return [
+        { id: "NEW", name: "NEW" },
+        { id: "IN_PROGRESS", name: "IN_PROGRESS" },
+        { id: "WAITING", name: "WAITING" },
+        { id: "DONE", name: "DONE" },
+      ];
+    }
+  });
   const [showAdd, setShowAdd] = useState(false);
   const [showTags, setShowTags] = useState(false);
   const { data: contacts } = useSWR<{
@@ -159,7 +206,21 @@ export default function DealsPage() {
   const [extras, setExtras] = useState<Record<string, DealExtra>>(() => {
     if (typeof window === "undefined") return {};
     try {
-      return JSON.parse(localStorage.getItem("dealExtras") || "{}");
+      const stored = JSON.parse(localStorage.getItem("dealExtras") || "{}");
+      Object.keys(stored).forEach((k) => {
+        stored[k] = {
+          title: "",
+          value: 0,
+          probability: 50,
+          closeDate: "",
+          hasDeadline: false,
+          deadline: "",
+          notes: "",
+          tag: "",
+          ...stored[k],
+        };
+      });
+      return stored;
     } catch {
       return {};
     }
@@ -179,9 +240,12 @@ export default function DealsPage() {
       data.deals.forEach((d) => {
         if (!copy[d.id]) {
           copy[d.id] = {
+            title: "",
             value: 0,
             probability: 50,
             closeDate: "",
+            hasDeadline: false,
+            deadline: "",
             notes: "",
             tag: "",
           };
@@ -196,6 +260,12 @@ export default function DealsPage() {
       localStorage.setItem("dealExtras", JSON.stringify(extras));
     }
   }, [extras]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("dealStages", JSON.stringify(stages));
+    }
+  }, [stages]);
 
   const filteredDeals = (data?.deals || []).filter((d) => {
     const ext = extras[d.id];
@@ -227,20 +297,20 @@ export default function DealsPage() {
     });
   };
 
-  const dealsByStage: Record<string, Deal[]> = {
-    NEW: [],
-    IN_PROGRESS: [],
-    WAITING: [],
-    DONE: [],
-  };
+  const dealsByStage: Record<string, Deal[]> = {};
+  stages.forEach((s) => {
+    dealsByStage[s.id] = [];
+  });
   filteredDeals.forEach((d) => {
     dealsByStage[d.stage].push(d);
   });
 
   const totalDeals = filteredDeals.length;
-  const winRate = totalDeals
-    ? Math.round((dealsByStage["DONE"].length / totalDeals) * 100)
-    : 0;
+  const lastStage = stages[stages.length - 1]?.id || "";
+  const winRate =
+    totalDeals && lastStage
+      ? Math.round((dealsByStage[lastStage].length / totalDeals) * 100)
+      : 0;
 
   async function addDeal(e: React.FormEvent) {
     e.preventDefault();
@@ -347,6 +417,19 @@ export default function DealsPage() {
           >
             Manage Tags
           </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              const name = prompt("Column name?");
+              if (name) {
+                const id = slugify(name);
+                setStages((st) => [...st, { id, name }]);
+              }
+            }}
+            className="hover:bg-gray-100"
+          >
+            Add Column
+          </Button>
         </div>
         <button
           onClick={() => setShowAdd(true)}
@@ -359,8 +442,8 @@ export default function DealsPage() {
       <div className="flex flex-wrap gap-4 text-sm">
         <span>Total: {totalDeals}</span>
         {stages.map((s) => (
-          <span key={s}>
-            {s.replace(/_/g, " ")}: {dealsByStage[s].length}
+          <span key={s.id}>
+            {s.name}: {dealsByStage[s.id].length}
           </span>
         ))}
         <span>Win Rate: {winRate}%</span>
@@ -379,8 +462,8 @@ export default function DealsPage() {
           >
             <option value="">Move to stage</option>
             {stages.map((s) => (
-              <option key={s} value={s}>
-                {s.replace(/_/g, " ")}
+              <option key={s.id} value={s.id}>
+                {s.name}
               </option>
             ))}
           </select>
@@ -428,9 +511,15 @@ export default function DealsPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
             {stages.map((stage) => (
               <StageColumn
-                key={stage}
-                stage={stage}
-                deals={dealsByStage[stage]}
+                key={stage.id}
+                stage={stage.id}
+                name={stage.name}
+                onRename={(name) =>
+                  setStages((st) =>
+                    st.map((s) => (s.id === stage.id ? { ...s, name } : s)),
+                  )
+                }
+                deals={dealsByStage[stage.id]}
                 extras={extras}
                 selected={selectedIds}
                 toggleSelect={(id, c) =>
@@ -492,6 +581,19 @@ export default function DealsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-semibold">Deal {drawerDeal.id.slice(0, 4)}</h2>
+            <Input
+              placeholder="Title"
+              value={extras[drawerDeal.id]?.title || ""}
+              onChange={(e) =>
+                setExtras((ex) => ({
+                  ...ex,
+                  [drawerDeal.id]: {
+                    ...ex[drawerDeal.id],
+                    title: e.target.value,
+                  },
+                }))
+              }
+            />
             <a
               href={`/dashboard/clients?search=${encodeURIComponent(
                 drawerDeal.contact.name || "",
@@ -543,6 +645,37 @@ export default function DealsPage() {
                 }))
               }
             />
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={extras[drawerDeal.id]?.hasDeadline || false}
+                onChange={(e) =>
+                  setExtras((ex) => ({
+                    ...ex,
+                    [drawerDeal.id]: {
+                      ...ex[drawerDeal.id],
+                      hasDeadline: e.target.checked,
+                    },
+                  }))
+                }
+              />
+              Set deadline
+            </label>
+            {extras[drawerDeal.id]?.hasDeadline && (
+              <Input
+                type="date"
+                value={extras[drawerDeal.id]?.deadline || ""}
+                onChange={(e) =>
+                  setExtras((ex) => ({
+                    ...ex,
+                    [drawerDeal.id]: {
+                      ...ex[drawerDeal.id],
+                      deadline: e.target.value,
+                    },
+                  }))
+                }
+              />
+            )}
             <select
               className="w-full rounded border p-1"
               value={extras[drawerDeal.id]?.tag || ""}
@@ -580,11 +713,16 @@ export default function DealsPage() {
               <Button type="button">Attach File</Button>
               <Button type="button">Send Email</Button>
             </div>
+            <hr className="my-2" />
             <div className="flex justify-end gap-2">
               <Button type="button" onClick={() => setDrawerDeal(null)}>
                 Close
               </Button>
-              <Button type="button" onClick={handleSave}>
+              <Button
+                type="button"
+                onClick={handleSave}
+                className="border-green-700 bg-green-600 text-white"
+              >
                 Save
               </Button>
             </div>
@@ -592,7 +730,11 @@ export default function DealsPage() {
         </div>
       )}
 
-      <TagManager open={showTags} onClose={() => setShowTags(false)} />
+      <TagManager
+        type="deals"
+        open={showTags}
+        onClose={() => setShowTags(false)}
+      />
     </div>
   );
 }

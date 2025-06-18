@@ -6,11 +6,13 @@ import { Button, Input } from "./ui";
 export function TagManager({
   open,
   onClose,
+  type = "clients",
 }: {
   open: boolean;
   onClose: () => void;
+  type?: "clients" | "deals";
 }) {
-  const { tags, addTag, updateTag, deleteTag } = useTags();
+  const { tags, addTag, updateTag, deleteTag } = useTags(type);
   const [name, setName] = useState("");
   const [color, setColor] = useState("#60a5fa");
   if (!open) return null;

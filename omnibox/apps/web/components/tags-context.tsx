@@ -8,37 +8,61 @@ export interface Tag {
   color: string;
 }
 
+type TagType = "clients" | "deals";
+
 interface TagsCtx {
-  tags: Tag[];
-  addTag: (name: string, color: string) => void;
-  updateTag: (id: string, data: Partial<Tag>) => void;
-  deleteTag: (id: string) => void;
+  get: (type: TagType) => Tag[];
+  addTag: (type: TagType, name: string, color: string) => void;
+  updateTag: (type: TagType, id: string, data: Partial<Tag>) => void;
+  deleteTag: (type: TagType, id: string) => void;
 }
 
 const TagsContext = createContext<TagsCtx | undefined>(undefined);
 
 export function TagsProvider({ children }: { children: ReactNode }) {
-  const [tags, setTags] = useState<Tag[]>([
+  const [clientTags, setClientTags] = useState<Tag[]>([
     { id: "vip", name: "VIP", color: "#f87171" },
     { id: "new", name: "New Client", color: "#60a5fa" },
   ]);
+  const [dealTags, setDealTags] = useState<Tag[]>([
+    { id: "low", name: "low priority", color: "#6b7280" },
+    { id: "medium", name: "medium priority", color: "#facc15" },
+    { id: "high", name: "high priority", color: "#ef4444" },
+  ]);
 
-  const addTag = (name: string, color: string) =>
-    setTags((t) => [...t, { id: uuid(), name, color }]);
-  const updateTag = (id: string, data: Partial<Tag>) =>
-    setTags((t) => t.map((tag) => (tag.id === id ? { ...tag, ...data } : tag)));
-  const deleteTag = (id: string) =>
-    setTags((t) => t.filter((tag) => tag.id !== id));
+  const getState = (type: TagType) =>
+    type === "clients" ? clientTags : dealTags;
+  const setState = (type: TagType) =>
+    type === "clients" ? setClientTags : setDealTags;
 
-  return (
-    <TagsContext.Provider value={{ tags, addTag, updateTag, deleteTag }}>
-      {children}
-    </TagsContext.Provider>
-  );
+  const addTag = (type: TagType, name: string, color: string) =>
+    setState(type)((t) => [...t, { id: uuid(), name, color }]);
+  const updateTag = (type: TagType, id: string, data: Partial<Tag>) =>
+    setState(type)((t) =>
+      t.map((tag) => (tag.id === id ? { ...tag, ...data } : tag)),
+    );
+  const deleteTag = (type: TagType, id: string) =>
+    setState(type)((t) => t.filter((tag) => tag.id !== id));
+
+  const value: TagsCtx = {
+    get: getState,
+    addTag,
+    updateTag,
+    deleteTag,
+  };
+
+  return <TagsContext.Provider value={value}>{children}</TagsContext.Provider>;
 }
 
-export function useTags() {
+export function useTags(type: TagType) {
   const ctx = useContext(TagsContext);
   if (!ctx) throw new Error("useTags must be inside TagsProvider");
-  return ctx;
+  const tags = ctx.get(type);
+  return {
+    tags,
+    addTag: (name: string, color: string) => ctx.addTag(type, name, color),
+    updateTag: (id: string, data: Partial<Tag>) =>
+      ctx.updateTag(type, id, data),
+    deleteTag: (id: string) => ctx.deleteTag(type, id),
+  };
 }
