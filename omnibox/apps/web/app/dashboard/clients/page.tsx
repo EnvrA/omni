@@ -229,12 +229,12 @@ export default function ClientsPage() {
           <Button onClick={exportCSV} className="whitespace-nowrap">
             Export CSV
           </Button>
-          <Button
+          <button
             onClick={openAdd}
-            className="whitespace-nowrap border-green-700 bg-green-600 text-white hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
+            className="px-3 py-1 rounded border shadow-sm whitespace-nowrap border-green-700 bg-green-600 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
           >
             Add Client
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -258,12 +258,12 @@ export default function ClientsPage() {
         <div className="flex flex-col items-center gap-4 py-20 text-gray-500">
           <img src="/globe.svg" alt="empty" className="h-24 w-24 opacity-75" />
           <span>No clients yet.</span>
-          <Button
+          <button
             onClick={openAdd}
-            className="border-green-700 bg-green-600 text-white hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
+            className="px-3 py-1 rounded border shadow-sm border-green-700 bg-green-600 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
           >
             Add your first client
-          </Button>
+          </button>
         </div>
       )}
       {filtered.length > 0 && (
@@ -437,12 +437,12 @@ export default function ClientsPage() {
               <Button type="button" onClick={() => setShowModal(false)}>
                 Cancel
               </Button>
-              <Button
+              <button
                 type="submit"
-                className="border-green-700 bg-green-600 text-white hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
+                className="px-3 py-1 rounded border shadow-sm border-green-700 bg-green-600 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
               >
                 Save
-              </Button>
+              </button>
             </div>
           </form>
         </div>
@@ -532,9 +532,9 @@ export default function ClientsPage() {
               <Button type="button" onClick={() => setDetail(null)}>
                 Close
               </Button>
-              <Button
+              <button
                 type="button"
-                className="border-green-700 bg-green-600 text-white hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
+                className="px-3 py-1 rounded border shadow-sm border-green-700 bg-green-600 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
                 onClick={async () => {
                   await fetch(`/api/client/${detail.id}`, {
                     method: "PATCH",
@@ -546,7 +546,7 @@ export default function ClientsPage() {
                 }}
               >
                 Save Notes
-              </Button>
+              </button>
             </div>
           </div>
         </div>
