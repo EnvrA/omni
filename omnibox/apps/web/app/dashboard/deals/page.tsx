@@ -64,11 +64,18 @@ function DraggableCard({
     <Card
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
       onClick={onOpen}
-      className="relative mb-2 cursor-move space-y-1 rounded bg-white p-2 shadow transition-transform"
+      className="relative mb-2 space-y-1 rounded bg-white p-2 shadow transition-transform"
     >
+      <span
+        {...listeners}
+        {...attributes}
+        className="absolute right-1 top-1 cursor-move text-gray-400"
+        onClick={(e) => e.stopPropagation()}
+        aria-label="Drag handle"
+      >
+        ⋮
+      </span>
       <input
         type="checkbox"
         checked={selected}
@@ -77,7 +84,9 @@ function DraggableCard({
         onClick={(e) => e.stopPropagation()}
       />
       <div className="text-sm font-semibold">Deal {deal.id.slice(0, 4)}</div>
-      <div className="text-xs text-gray-600">{deal.contact.name || "Unnamed"}</div>
+      <div className="text-xs text-gray-600">
+        {deal.contact.name || "Unnamed"}
+      </div>
       <div className="text-xs text-gray-500">Value: ${extra?.value ?? 0}</div>
     </Card>
   );
@@ -105,7 +114,9 @@ function StageColumn({
       className={`space-y-2 rounded border p-2 ${isOver ? "bg-blue-50" : "bg-gray-50"}`}
     >
       <h2 className="mb-1 text-sm font-semibold">{stage.replace(/_/g, " ")}</h2>
-      {deals.length === 0 && <div className="text-sm text-gray-500">No deals</div>}
+      {deals.length === 0 && (
+        <div className="text-sm text-gray-500">No deals</div>
+      )}
       {deals.map((d) => (
         <DraggableCard
           key={d.id}
@@ -121,14 +132,16 @@ function StageColumn({
 }
 
 export default function DealsPage() {
-  const { data, error, mutate } = useSWR<{ deals: Deal[] }>("/api/deals", fetcher);
+  const { data, error, mutate } = useSWR<{ deals: Deal[] }>(
+    "/api/deals",
+    fetcher,
+  );
   const { tags } = useTags();
   const [showAdd, setShowAdd] = useState(false);
   const [showTags, setShowTags] = useState(false);
-  const { data: contacts } = useSWR<{ contacts: { id: string; name: string | null }[] }>(
-    showAdd ? "/api/contacts" : null,
-    fetcher,
-  );
+  const { data: contacts } = useSWR<{
+    contacts: { id: string; name: string | null }[];
+  }>(showAdd ? "/api/contacts" : null, fetcher);
   const [contactId, setContactId] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [drawerDeal, setDrawerDeal] = useState<Deal | null>(null);
@@ -138,7 +151,11 @@ export default function DealsPage() {
   const [endDate, setEndDate] = useState("");
   const [minValue, setMinValue] = useState(0);
   const [tagFilter, setTagFilter] = useState("all");
-  const [lastMove, setLastMove] = useState<{ id: string; from: string; to: string } | null>(null);
+  const [lastMove, setLastMove] = useState<{
+    id: string;
+    from: string;
+    to: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!data?.deals) return;
@@ -146,7 +163,13 @@ export default function DealsPage() {
       const copy = { ...ex };
       data.deals.forEach((d) => {
         if (!copy[d.id]) {
-          copy[d.id] = { value: 0, probability: 50, closeDate: "", notes: "", tag: "" };
+          copy[d.id] = {
+            value: 0,
+            probability: 50,
+            closeDate: "",
+            notes: "",
+            tag: "",
+          };
         }
       });
       return copy;
@@ -155,10 +178,19 @@ export default function DealsPage() {
 
   const filteredDeals = (data?.deals || []).filter((d) => {
     const ext = extras[d.id];
-    if (search && !d.contact.name?.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !d.contact.name?.toLowerCase().includes(search.toLowerCase()))
+      return false;
     if (tagFilter !== "all" && ext?.tag !== tagFilter) return false;
-    if (startDate && (!ext?.closeDate || new Date(ext.closeDate) < new Date(startDate))) return false;
-    if (endDate && (!ext?.closeDate || new Date(ext.closeDate) > new Date(endDate))) return false;
+    if (
+      startDate &&
+      (!ext?.closeDate || new Date(ext.closeDate) < new Date(startDate))
+    )
+      return false;
+    if (
+      endDate &&
+      (!ext?.closeDate || new Date(ext.closeDate) > new Date(endDate))
+    )
+      return false;
     if (ext && ext.value < minValue) return false;
     return true;
   });
@@ -185,7 +217,12 @@ export default function DealsPage() {
     });
   };
 
-  const dealsByStage: Record<string, Deal[]> = { NEW: [], IN_PROGRESS: [], WAITING: [], DONE: [] };
+  const dealsByStage: Record<string, Deal[]> = {
+    NEW: [],
+    IN_PROGRESS: [],
+    WAITING: [],
+    DONE: [],
+  };
   filteredDeals.forEach((d) => {
     dealsByStage[d.stage].push(d);
   });
@@ -208,7 +245,6 @@ export default function DealsPage() {
     mutate();
   }
 
-
   async function moveDeal(id: string, stage: string) {
     await fetch(`/api/deal/${id}`, {
       method: "PATCH",
@@ -226,8 +262,8 @@ export default function DealsPage() {
   async function deleteSelected() {
     await Promise.all(
       Array.from(selectedIds).map((id) =>
-        fetch(`/api/deal/${id}`, { method: "DELETE" })
-      )
+        fetch(`/api/deal/${id}`, { method: "DELETE" }),
+      ),
     );
     setSelectedIds(new Set());
     mutate();
@@ -248,7 +284,13 @@ export default function DealsPage() {
     const rows = [["ID", "Contact", "Stage", "Value"]];
     selectedIds.forEach((id) => {
       const d = data?.deals.find((dd) => dd.id === id);
-      if (d) rows.push([d.id, d.contact.name || "", d.stage, String(extras[id]?.value ?? 0)]);
+      if (d)
+        rows.push([
+          d.id,
+          d.contact.name || "",
+          d.stage,
+          String(extras[id]?.value ?? 0),
+        ]);
     });
     const csv = rows.map((r) => r.map((v) => `"${v}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -271,8 +313,16 @@ export default function DealsPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="w-40"
           />
-          <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-          <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+          <Input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
           <input
             type="range"
             min={0}
@@ -292,7 +342,11 @@ export default function DealsPage() {
               </option>
             ))}
           </select>
-          <Button type="button" onClick={() => setShowTags(true)} className="hover:bg-gray-100">
+          <Button
+            type="button"
+            onClick={() => setShowTags(true)}
+            className="hover:bg-gray-100"
+          >
             Manage Tags
           </Button>
         </div>
@@ -351,14 +405,20 @@ export default function DealsPage() {
               </option>
             ))}
           </select>
-          <Button type="button" onClick={exportCSV} className="whitespace-nowrap">
+          <Button
+            type="button"
+            onClick={exportCSV}
+            className="whitespace-nowrap"
+          >
             Export CSV
           </Button>
         </div>
       )}
 
       {error && (
-        <div className="text-red-500">Error loading deals: {error.message || String(error)}</div>
+        <div className="text-red-500">
+          Error loading deals: {error.message || String(error)}
+        </div>
       )}
       {!data && !error && (
         <div className="flex justify-center py-10">
@@ -391,16 +451,22 @@ export default function DealsPage() {
       )}
 
       {showAdd && (
-        <dialog open className="fixed inset-0 flex items-center justify-center bg-black/50">
-          <form onSubmit={addDeal} className="space-y-2 rounded bg-white p-4 shadow">
+        <dialog
+          open
+          className="fixed inset-0 flex items-center justify-center bg-black/50"
+        >
+          <form
+            onSubmit={addDeal}
+            className="space-y-2 rounded bg-white p-4 shadow"
+          >
             <h2 className="font-semibold">New Deal</h2>
             <select
               className="w-full rounded border p-1"
               value={contactId}
-              onChange={e => setContactId(e.target.value)}
+              onChange={(e) => setContactId(e.target.value)}
             >
               <option value="">Select contact</option>
-              {contacts?.contacts?.map(c => (
+              {contacts?.contacts?.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name || c.id}
                 </option>
@@ -435,7 +501,10 @@ export default function DealsPage() {
               onChange={(e) =>
                 setExtras((ex) => ({
                   ...ex,
-                  [drawerDeal.id]: { ...ex[drawerDeal.id], value: Number(e.target.value) },
+                  [drawerDeal.id]: {
+                    ...ex[drawerDeal.id],
+                    value: Number(e.target.value),
+                  },
                 }))
               }
             />
@@ -447,7 +516,10 @@ export default function DealsPage() {
               onChange={(e) =>
                 setExtras((ex) => ({
                   ...ex,
-                  [drawerDeal.id]: { ...ex[drawerDeal.id], probability: Number(e.target.value) },
+                  [drawerDeal.id]: {
+                    ...ex[drawerDeal.id],
+                    probability: Number(e.target.value),
+                  },
                 }))
               }
             />
@@ -457,7 +529,10 @@ export default function DealsPage() {
               onChange={(e) =>
                 setExtras((ex) => ({
                   ...ex,
-                  [drawerDeal.id]: { ...ex[drawerDeal.id], closeDate: e.target.value },
+                  [drawerDeal.id]: {
+                    ...ex[drawerDeal.id],
+                    closeDate: e.target.value,
+                  },
                 }))
               }
             />
@@ -466,7 +541,10 @@ export default function DealsPage() {
               onChange={(e) =>
                 setExtras((ex) => ({
                   ...ex,
-                  [drawerDeal.id]: { ...ex[drawerDeal.id], notes: e.target.value },
+                  [drawerDeal.id]: {
+                    ...ex[drawerDeal.id],
+                    notes: e.target.value,
+                  },
                 }))
               }
             />
