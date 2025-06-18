@@ -132,6 +132,7 @@ export default function DealsPage() {
   const [contactId, setContactId] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [drawerDeal, setDrawerDeal] = useState<Deal | null>(null);
+  // Allow undefined extras until they are loaded
   const [extras, setExtras] = useState<Record<string, DealExtra | undefined>>({});
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
