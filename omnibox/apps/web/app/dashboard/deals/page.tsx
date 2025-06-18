@@ -78,7 +78,7 @@ function DraggableCard({
       />
       <div className="text-sm font-semibold">Deal {deal.id.slice(0, 4)}</div>
       <div className="text-xs text-gray-600">{deal.contact.name || "Unnamed"}</div>
-      <div className="text-xs text-gray-500">Value: ${extra.value}</div>
+      <div className="text-xs text-gray-500">Value: ${extra?.value ?? 0}</div>
     </Card>
   );
 }
