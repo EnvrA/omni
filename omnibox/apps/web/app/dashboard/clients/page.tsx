@@ -227,7 +227,7 @@ export default function ClientsPage() {
           </Button>
           <Button
             onClick={openAdd}
-            className="whitespace-nowrap bg-green-600 text-white hover:bg-green-700"
+            className="whitespace-nowrap border-green-700 bg-green-600 text-white hover:bg-green-700"
           >
             Add Client
           </Button>
@@ -256,7 +256,7 @@ export default function ClientsPage() {
           <span>No clients yet.</span>
           <Button
             onClick={openAdd}
-            className="bg-green-600 text-white hover:bg-green-700"
+            className="border-green-700 bg-green-600 text-white hover:bg-green-700"
           >
             Add your first client
           </Button>
@@ -295,12 +295,13 @@ export default function ClientsPage() {
                     )}
                   </div>
                 </div>
-                <div className="flex gap-1 pt-1">
+                <div className="flex items-center gap-1 pt-1 text-gray-600">
                   {c.email && (
                     <a
                       href={`mailto:${c.email}`}
                       onClick={(e) => e.stopPropagation()}
                       aria-label="Email client"
+                      className="text-blue-600 hover:text-blue-800"
                     >
                       <Mail className="h-4 w-4" />
                     </a>
@@ -310,6 +311,7 @@ export default function ClientsPage() {
                       href={`tel:${c.phone}`}
                       onClick={(e) => e.stopPropagation()}
                       aria-label="Call client"
+                      className="text-blue-600 hover:text-blue-800"
                     >
                       <Phone className="h-4 w-4" />
                     </a>
@@ -319,16 +321,19 @@ export default function ClientsPage() {
                       href={`https://wa.me/${c.phone.replace(/\D/g, "")}`}
                       onClick={(e) => e.stopPropagation()}
                       aria-label="WhatsApp client"
+                      className="text-green-600 hover:text-green-800"
                     >
                       <MessageCircle className="h-4 w-4" />
                     </a>
                   )}
+                  <span className="mx-1 h-4 border-l border-gray-300" />
                   <button
                     title="Edit"
                     onClick={(e) => {
                       e.stopPropagation();
                       openEdit(c);
                     }}
+                    className="hover:text-blue-700"
                   >
                     <Edit3 className="h-4 w-4" />
                   </button>
@@ -338,8 +343,9 @@ export default function ClientsPage() {
                       e.stopPropagation();
                       setConfirmDelete(c.id);
                     }}
+                    className="text-red-600 hover:text-red-700"
                   >
-                    <Trash className="h-4 w-4 hover:text-red-600" />
+                    <Trash className="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -429,7 +435,7 @@ export default function ClientsPage() {
               </Button>
               <Button
                 type="submit"
-                className="bg-green-600 text-white hover:bg-green-700"
+                className="border-green-700 bg-green-600 text-white hover:bg-green-700"
               >
                 Save
               </Button>
@@ -524,7 +530,7 @@ export default function ClientsPage() {
               </Button>
               <Button
                 type="button"
-                className="bg-green-600 text-white hover:bg-green-700"
+                className="border-green-700 bg-green-600 text-white hover:bg-green-700"
                 onClick={async () => {
                   await fetch(`/api/client/${detail.id}`, {
                     method: "PATCH",
