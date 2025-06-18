@@ -53,6 +53,7 @@ function DraggableCard({
   onOpen: () => void;
   extra: DealExtra;
 }) {
+  const { tags } = useTags();
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: deal.id,
     data: { stage: deal.stage },
@@ -88,6 +89,16 @@ function DraggableCard({
         {deal.contact.name || "Unnamed"}
       </div>
       <div className="text-xs text-gray-500">Value: ${extra?.value ?? 0}</div>
+      {extra.tag && (
+        <span
+          className="inline-block rounded-full px-2 py-0.5 text-[10px] text-white"
+          style={{
+            background: tags.find((t) => t.name === extra.tag)?.color || "#888",
+          }}
+        >
+          {extra.tag}
+        </span>
+      )}
     </Card>
   );
 }
@@ -145,11 +156,15 @@ export default function DealsPage() {
   const [contactId, setContactId] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [drawerDeal, setDrawerDeal] = useState<Deal | null>(null);
-  const [extras, setExtras] = useState<Record<string, DealExtra>>({});
+  const [extras, setExtras] = useState<Record<string, DealExtra>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      return JSON.parse(localStorage.getItem("dealExtras") || "{}");
+    } catch {
+      return {};
+    }
+  });
   const [search, setSearch] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [minValue, setMinValue] = useState(0);
   const [tagFilter, setTagFilter] = useState("all");
   const [lastMove, setLastMove] = useState<{
     id: string;
@@ -176,22 +191,17 @@ export default function DealsPage() {
     });
   }, [data]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("dealExtras", JSON.stringify(extras));
+    }
+  }, [extras]);
+
   const filteredDeals = (data?.deals || []).filter((d) => {
     const ext = extras[d.id];
     if (search && !d.contact.name?.toLowerCase().includes(search.toLowerCase()))
       return false;
     if (tagFilter !== "all" && ext?.tag !== tagFilter) return false;
-    if (
-      startDate &&
-      (!ext?.closeDate || new Date(ext.closeDate) < new Date(startDate))
-    )
-      return false;
-    if (
-      endDate &&
-      (!ext?.closeDate || new Date(ext.closeDate) > new Date(endDate))
-    )
-      return false;
-    if (ext && ext.value < minValue) return false;
     return true;
   });
 
@@ -303,6 +313,11 @@ export default function DealsPage() {
     setSelectedIds(new Set());
   }
 
+  function handleSave() {
+    toast.success("Deal saved");
+    setDrawerDeal(null);
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
@@ -312,23 +327,6 @@ export default function DealsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-40"
-          />
-          <Input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-          <Input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-          <input
-            type="range"
-            min={0}
-            max={1000}
-            value={minValue}
-            onChange={(e) => setMinValue(Number(e.target.value))}
           />
           <select
             className="rounded border p-1"
@@ -494,7 +492,16 @@ export default function DealsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-semibold">Deal {drawerDeal.id.slice(0, 4)}</h2>
-            <p className="text-sm text-gray-600">{drawerDeal.contact.name}</p>
+            <a
+              href={`/dashboard/clients?search=${encodeURIComponent(
+                drawerDeal.contact.name || "",
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm text-blue-600 underline"
+            >
+              {drawerDeal.contact.name || "View contact"}
+            </a>
             <Input
               type="number"
               value={extras[drawerDeal.id]?.value ?? 0}
@@ -536,6 +543,26 @@ export default function DealsPage() {
                 }))
               }
             />
+            <select
+              className="w-full rounded border p-1"
+              value={extras[drawerDeal.id]?.tag || ""}
+              onChange={(e) =>
+                setExtras((ex) => ({
+                  ...ex,
+                  [drawerDeal.id]: {
+                    ...ex[drawerDeal.id],
+                    tag: e.target.value,
+                  },
+                }))
+              }
+            >
+              <option value="">No Tag</option>
+              {tags.map((t) => (
+                <option key={t.id} value={t.name}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
             <Textarea
               value={extras[drawerDeal.id]?.notes || ""}
               onChange={(e) =>
@@ -553,9 +580,12 @@ export default function DealsPage() {
               <Button type="button">Attach File</Button>
               <Button type="button">Send Email</Button>
             </div>
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
               <Button type="button" onClick={() => setDrawerDeal(null)}>
                 Close
+              </Button>
+              <Button type="button" onClick={handleSave}>
+                Save
               </Button>
             </div>
           </div>
