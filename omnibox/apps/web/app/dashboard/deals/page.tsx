@@ -89,7 +89,7 @@ function DraggableCard({
         {deal.contact.name || "Unnamed"}
       </div>
       <div className="text-xs text-gray-500">Value: ${extra?.value ?? 0}</div>
-      {extra.tag && (
+      {extra?.tag && (
         <span
           className="inline-block rounded-full px-2 py-0.5 text-[10px] text-white"
           style={{
