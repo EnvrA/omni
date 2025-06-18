@@ -8,6 +8,7 @@ import {
   useDroppable,
   DragEndEvent,
 } from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
 import { Card, Button, Input, Textarea } from "@/components/ui";
 import { toast } from "sonner";
 import { useTags } from "@/components/tags-context";
@@ -77,7 +78,7 @@ function DraggableCard({
   const { tags } = useTags("deals");
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: deal.id,
-    data: { stage: deal.stage },
+    data: { stage: deal.stage, type: "deal" },
   });
   const style = transform
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
@@ -178,11 +179,29 @@ function StageColumn({
   openDeal: (d: Deal) => void;
   drawerDeal: Deal | null;
 }) {
-  const { isOver, setNodeRef } = useDroppable({ id: stage, data: { stage } });
+  const {
+    isOver,
+    setNodeRef: setDropRef,
+  } = useDroppable({ id: stage, data: { stage, column: stage } });
+  const {
+    attributes: colAttributes,
+    listeners: colListeners,
+    setNodeRef: setDragRef,
+    transform: colTransform,
+    transition: colTransition,
+  } = useDraggable({ id: `column-${stage}`, data: { column: stage, type: "column" } });
+  const ref = (node: HTMLElement | null) => {
+    setDropRef(node);
+    setDragRef(node);
+  };
+  const style = colTransform
+    ? { transform: `translate3d(${colTransform.x}px, ${colTransform.y}px, 0)`, transition: colTransition }
+    : { transition: colTransition };
   const [editing, setEditing] = useState(false);
   return (
     <div
-      ref={setNodeRef}
+      ref={ref}
+      style={style}
       className={`space-y-2 rounded border p-2 ${isOver ? "bg-blue-50" : "bg-gray-50"}`}
     >
       <div className="mb-1 flex items-center gap-1">
@@ -200,8 +219,10 @@ function StageColumn({
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="text-xs text-gray-500"
+              className="cursor-move text-xs text-gray-500"
               aria-label="Edit column"
+              {...colListeners}
+              {...colAttributes}
             >
               ✎
             </button>
@@ -378,23 +399,35 @@ export default function DealsPage() {
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
-    const newStage = over.data.current?.stage;
-    const oldStage = active.data.current?.stage;
-    if (!newStage || newStage === oldStage) return;
-    await moveDeal(String(active.id), newStage, oldStage);
-    setLastMove({ id: String(active.id), from: oldStage, to: newStage });
-    mutate();
-    toast.success(`Moved to ${newStage.replace(/_/g, " ")}`, {
-      action: {
-        label: "Undo",
-        onClick: async () => {
-          if (lastMove) {
-            await moveDeal(lastMove.id, lastMove.from, lastMove.to);
-            mutate();
-          }
+    const type = active.data.current?.type;
+    if (type === "deal") {
+      const newStage = over.data.current?.stage;
+      const oldStage = active.data.current?.stage;
+      if (!newStage || newStage === oldStage) return;
+      await moveDeal(String(active.id), newStage, oldStage);
+      setLastMove({ id: String(active.id), from: oldStage, to: newStage });
+      mutate();
+      toast.success(`Moved to ${newStage.replace(/_/g, " ")}`, {
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            if (lastMove) {
+              await moveDeal(lastMove.id, lastMove.from, lastMove.to);
+              mutate();
+            }
+          },
         },
-      },
-    });
+      });
+    } else if (type === "column") {
+      const activeId = active.data.current?.column as string;
+      const overId = over.data.current?.column as string;
+      if (!activeId || !overId || activeId === overId) return;
+      const oldIndex = stages.findIndex((s) => s.id === activeId);
+      const newIndex = stages.findIndex((s) => s.id === overId);
+      if (oldIndex === -1 || newIndex === -1) return;
+      const newStages = arrayMove(stages, oldIndex, newIndex);
+      updateStages(newStages);
+    }
   };
 
   const dealsByStage: Record<string, Deal[]> = {};
@@ -523,7 +556,10 @@ export default function DealsPage() {
   if (!mounted) return null;
 
   return (
-    <div className={drawerDeal ? "space-y-4 filter blur-sm brightness-50" : "space-y-4"}>
+    <div className="relative space-y-4">
+      {drawerDeal && (
+        <div className="pointer-events-none fixed inset-0 z-40 bg-white/50 backdrop-blur-sm" />
+      )}
       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
         <div className="flex flex-wrap items-end gap-2">
           <select
@@ -706,7 +742,7 @@ export default function DealsPage() {
       {showAdd && (
         <dialog
           open
-          className="fixed inset-0 flex items-start justify-start bg-black/50"
+          className="fixed inset-0 flex items-center justify-center bg-black/50"
         >
           <form
             onSubmit={addDeal}
