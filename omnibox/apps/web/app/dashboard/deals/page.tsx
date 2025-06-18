@@ -187,7 +187,6 @@ export default function DealsPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
-  if (!mounted) return null;
   const [stages, setStages] = useState<Stage[]>(() => {
     if (typeof window === "undefined")
       return [
@@ -407,6 +406,8 @@ export default function DealsPage() {
     toast.success("Deal saved");
     setDrawerDeal(null);
   }
+
+  if (!mounted) return null;
 
   return (
     <div className="space-y-4">
