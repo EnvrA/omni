@@ -12,7 +12,7 @@ export async function GET() {
   const deals = await prisma.deal.findMany({
     where: { userId: user.id },
     include: {
-      contact: { select: { name: true } },
+      contact: { select: { id: true, name: true } },
     },
   });
 

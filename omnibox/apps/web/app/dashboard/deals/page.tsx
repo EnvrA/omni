@@ -28,7 +28,7 @@ const fetcher = async (url: string) => {
 interface Deal {
   id: string;
   stage: string;
-  contact: { name: string | null };
+  contact: { id: string; name: string | null };
 }
 
 interface DealExtra {
@@ -219,12 +219,19 @@ function StageColumn({
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="cursor-move text-xs text-gray-500"
+              className="text-xs text-gray-500"
               aria-label="Edit column"
+            >
+              ✎
+            </button>
+            <button
+              type="button"
+              className="cursor-move text-xs text-gray-500"
+              aria-label="Drag column"
               {...colListeners}
               {...colAttributes}
             >
-              ✎
+              ☰
             </button>
           </>
         )}
@@ -317,6 +324,8 @@ export default function DealsPage() {
     contacts: { id: string; name: string | null }[];
   }>(showAdd ? "/api/contacts" : null, fetcher);
   const [contactId, setContactId] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+  const [contactName, setContactName] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [drawerDeal, setDrawerDeal] = useState<Deal | null>(null);
   const [extras, setExtras] = useState<Record<string, DealExtra>>(() => {
@@ -388,6 +397,12 @@ export default function DealsPage() {
     }
   }, [pipelines, currentPipeline]);
 
+  useEffect(() => {
+    if (drawerDeal) {
+      setContactName(drawerDeal.contact.name || "");
+    }
+  }, [drawerDeal]);
+
   const filteredDeals = (data?.deals || []).filter((d) => {
     const ext = extras[d.id];
     if (search && !d.contact.name?.toLowerCase().includes(search.toLowerCase()))
@@ -458,7 +473,7 @@ export default function DealsPage() {
       setExtras((ex) => ({
         ...ex,
         [json.deal.id]: {
-          title: "",
+          title: newTitle,
           value: 0,
           probability: 50,
           closeDate: "",
@@ -472,6 +487,7 @@ export default function DealsPage() {
     }
     setShowAdd(false);
     setContactId("");
+    setNewTitle("");
     mutate();
   }
 
@@ -551,6 +567,19 @@ export default function DealsPage() {
   function handleSave() {
     toast.success("Deal saved");
     setDrawerDeal(null);
+  }
+
+  async function saveClientName() {
+    if (!drawerDeal) return;
+    await fetch(`/api/client/${drawerDeal.contact.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: contactName }),
+    });
+    mutate();
+    setDrawerDeal((d) =>
+      d ? { ...d, contact: { ...d.contact, name: contactName } } : d,
+    );
   }
 
   if (!mounted) return null;
@@ -740,15 +769,23 @@ export default function DealsPage() {
       )}
 
       {showAdd && (
-        <dialog
-          open
-          className="fixed inset-0 flex items-center justify-center bg-black/50"
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setShowAdd(false)}
         >
           <form
             onSubmit={addDeal}
             className="space-y-2 rounded bg-white p-4 shadow"
+            onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-semibold">New Deal</h2>
+            <Input
+              placeholder="Title"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+            />
             <select
               className="w-full rounded border p-1"
               value={contactId}
@@ -770,7 +807,7 @@ export default function DealsPage() {
               </Button>
             </div>
           </form>
-        </dialog>
+        </div>
       )}
 
       {drawerDeal && (
@@ -796,42 +833,33 @@ export default function DealsPage() {
                 }))
               }
             />
-            <a
-              href={`/dashboard/clients?search=${encodeURIComponent(
-                drawerDeal.contact.name || "",
-              )}`}
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm text-blue-600 underline"
-            >
-              {drawerDeal.contact.name || "View contact"}
-            </a>
-            <Input
-              type="number"
-              value={extras[drawerDeal.id]?.value ?? 0}
-              onChange={(e) =>
-                setExtras((ex) => ({
-                  ...ex,
-                  [drawerDeal.id]: {
-                    ...ex[drawerDeal.id],
-                    value: Number(e.target.value),
-                  },
-                }))
-              }
-            />
-            <Input
-              type="date"
-              value={extras[drawerDeal.id]?.closeDate || ""}
-              onChange={(e) =>
-                setExtras((ex) => ({
-                  ...ex,
-                  [drawerDeal.id]: {
-                    ...ex[drawerDeal.id],
-                    closeDate: e.target.value,
-                  },
-                }))
-              }
-            />
+            <div className="flex gap-2">
+              <Input
+                value={contactName}
+                onChange={(e) => setContactName(e.target.value)}
+                className="flex-1"
+                placeholder="Client name"
+              />
+              <Button type="button" onClick={saveClientName} aria-label="Save client name">
+                Save
+              </Button>
+            </div>
+            <label className="flex flex-col text-sm">
+              <span>Value</span>
+              <Input
+                type="number"
+                value={extras[drawerDeal.id]?.value ?? 0}
+                onChange={(e) =>
+                  setExtras((ex) => ({
+                    ...ex,
+                    [drawerDeal.id]: {
+                      ...ex[drawerDeal.id],
+                      value: Number(e.target.value),
+                    },
+                  }))
+                }
+              />
+            </label>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
