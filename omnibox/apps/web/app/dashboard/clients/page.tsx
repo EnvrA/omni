@@ -253,6 +253,7 @@ export default function ClientsPage() {
                       <Badge
                         style={{
                           background: tags.find((t) => t.name === c.tag)?.color,
+                          color: "#fff",
                         }}
                       >
                         {c.tag}
