@@ -289,9 +289,11 @@ export default function ClientsPage() {
       )}
 
       {showModal && (
-        <dialog
-          open
-          className="fixed inset-0 flex items-center justify-center bg-black/50"
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur"
+          onClick={() => setShowModal(false)}
         >
           <form
             onSubmit={saveClient}
@@ -367,13 +369,14 @@ export default function ClientsPage() {
               <Button type="submit">Save</Button>
             </div>
           </form>
-        </dialog>
+        </div>
       )}
 
       {detail && (
-        <dialog
-          open
-          className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur"
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur"
           onClick={() => setDetail(null)}
         >
           <div
@@ -416,7 +419,7 @@ export default function ClientsPage() {
               </Button>
             </div>
           </div>
-        </dialog>
+        </div>
       )}
 
       {confirmDelete && (
