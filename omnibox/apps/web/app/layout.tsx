@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { ClientToaster } from "@/components/toaster";
+import { TagsProvider } from "@/components/tags-context";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -26,7 +27,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ClientToaster />
-        {children}
+        <TagsProvider>{children}</TagsProvider>
       </body>
     </html>
   );
