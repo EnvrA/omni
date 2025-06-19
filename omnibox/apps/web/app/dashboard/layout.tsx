@@ -12,8 +12,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <Link href="/dashboard/deals" className="w-full rounded px-2 py-1 text-left hover:bg-gray-100">
             Deals
           </Link>
+          <Link href="/dashboard/calendar" className="w-full rounded px-2 py-1 text-left hover:bg-gray-100">
+            Calendar
+          </Link>
           <Link href="/dashboard/clients" className="w-full rounded px-2 py-1 text-left hover:bg-gray-100">
             Clients
+          </Link>
+          <Link href="/dashboard/message-center" className="w-full rounded px-2 py-1 text-left hover:bg-gray-100">
+            Message Center
+          </Link>
+          <Link href="/dashboard/segments" className="w-full rounded px-2 py-1 text-left hover:bg-gray-100">
+            Segments
           </Link>
           <Link href="/dashboard/settings" className="w-full rounded px-2 py-1 text-left hover:bg-gray-100">
             Settings
