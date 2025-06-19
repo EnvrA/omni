@@ -134,3 +134,11 @@ model TwilioNumber {
   phone  String @id // E.164 e.g. +15005550006
   userId String // fk → User.id
 }
+
+model QuickReply {
+  id     String   @id @default(uuid())
+  userId String
+  label  String
+  text   String
+  user   User     @relation(fields: [userId], references: [id])
+}

@@ -23,6 +23,9 @@ export default function InboxPage() {
   );
   const [contactId, setContactId] = useState<string>();
 
+  // quick replies for dropdown
+  const { data: quickReplies } = useSWR("/api/quick-replies", fetcher);
+
   // messages for the selected contact
   const {
     data: messages,
@@ -162,8 +165,26 @@ export default function InboxPage() {
             </ul>
             <form
               onSubmit={sendMessage}
-              className="sticky bottom-0 left-0 right-0 flex gap-2 border-t border-gray-200 bg-white p-4"
+              className="sticky bottom-0 left-0 right-0 flex flex-wrap gap-2 border-t border-gray-200 bg-white p-4"
             >
+              <select
+                className="max-w-xs rounded border p-1 shadow-sm"
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setMessageBody(e.target.value);
+                    e.currentTarget.selectedIndex = 0;
+                  }
+                }}
+                aria-label="Quick replies"
+                disabled={!contactId}
+              >
+                <option value="">Quick reply…</option>
+                {quickReplies?.quickReplies?.map((qr: any) => (
+                  <option key={qr.id} value={qr.text}>
+                    {qr.label}
+                  </option>
+                ))}
+              </select>
               <Input
                 className="flex-1"
                 placeholder="Type a message…"

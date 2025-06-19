@@ -38,7 +38,12 @@ async function main() {
   await prisma.contact.deleteMany({ where: { userId: user.id } })
 
   /* ------------------------------------------------------------------ *
-   * 5 · Fresh demo contacts + messages                                 *
+   * 5 · Clear previous quick replies                                  *
+   * ------------------------------------------------------------------ */
+  await prisma.quickReply.deleteMany({ where: { userId: user.id } })
+
+  /* ------------------------------------------------------------------ *
+   * 6 · Fresh demo contacts + messages                                 *
    * ------------------------------------------------------------------ */
   const contactsData = [
     {
@@ -87,7 +92,20 @@ async function main() {
   },
 })
 
-  console.log("🌱  Seed completed – demo user, Twilio number, contacts & messages.")
+  /* ------------------------------------------------------------------ *
+   * 7 · Seed quick replies                                           *
+   * ------------------------------------------------------------------ */
+  await prisma.quickReply.createMany({
+    data: [
+      { userId: user.id, label: "Bedankt", text: "Dank je voor je bericht" },
+      { userId: user.id, label: "Later", text: "Ik kom er zo bij je op terug" },
+      { userId: user.id, label: "Bel", text: "Ik bel je later vandaag" },
+    ],
+  })
+
+  console.log(
+    "🌱  Seed completed – demo user, Twilio number, contacts, messages & quick replies."
+  )
 }
 
 main()
