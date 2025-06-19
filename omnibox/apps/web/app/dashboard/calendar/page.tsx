@@ -96,19 +96,35 @@ export default function CalendarPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Calendar</h1>
-      <div className="flex items-center gap-2">
-        <label htmlFor="view" className="text-sm">View:</label>
-        <select
-          id="view"
-          value={view}
-          onChange={(e) => setView(e.target.value as "week" | "month")}
-          className="rounded border px-2 py-1"
+      <div
+        className="flex items-center gap-2"
+        aria-label="Select calendar view"
+      >
+        <Button
+          type="button"
+          onClick={() => setView("week")}
+          aria-pressed={view === "week"}
+          className={`${
+            view === "week" ? "bg-blue-600 text-white" : "bg-white"
+          }`}
         >
-          <option value="week">This week</option>
-          <option value="month">This month</option>
-        </select>
+          Week
+        </Button>
+        <Button
+          type="button"
+          onClick={() => setView("month")}
+          aria-pressed={view === "month"}
+          className={`${
+            view === "month" ? "bg-blue-600 text-white" : "bg-white"
+          }`}
+        >
+          Month
+        </Button>
       </div>
-      <form onSubmit={addAppointment} className="flex flex-wrap items-end gap-2">
+      <form
+        onSubmit={addAppointment}
+        className="flex flex-wrap items-end gap-2"
+      >
         <Input
           className="flex-1"
           value={title}
@@ -122,6 +138,7 @@ export default function CalendarPage() {
         />
         <Button
           type="submit"
+          onClick={addAppointment}
           className="bg-green-600 text-white"
         >
           Add appointment
@@ -130,7 +147,9 @@ export default function CalendarPage() {
       <div className="space-y-2">
         {filteredEvents.map((ev, idx) => (
           <Card key={idx} className="flex items-center justify-between gap-2">
-            <span>{new Date(ev.date).toLocaleString()} – {ev.title}</span>
+            <span>
+              {new Date(ev.date).toLocaleString()} – {ev.title}
+            </span>
             <span className="text-xs text-gray-500">{ev.type}</span>
           </Card>
         ))}

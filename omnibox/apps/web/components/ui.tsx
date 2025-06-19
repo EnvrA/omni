@@ -10,13 +10,9 @@ export const Button = forwardRef<
   HTMLButtonElement,
   React.ButtonHTMLAttributes<HTMLButtonElement>
 >(function Button({ className = "", ...props }, ref) {
-  return (
-    <button
-      ref={ref}
-      className={"px-3 py-1 rounded border shadow-sm bg-white " + className}
-      {...props}
-    />
-  );
+  const base = "px-3 py-1 rounded border shadow-sm";
+  const classes = className ? `${base} ${className}` : `${base} bg-white`;
+  return <button ref={ref} className={classes} {...props} />;
 });
 
 export const Input = forwardRef<
