@@ -138,7 +138,7 @@ function DraggableCard({
       <div className="text-xs text-gray-600">
         {deal.contact.name || "Unnamed"}
       </div>
-      <div className="text-xs text-gray-500">Value: ${extra?.value ?? 0}</div>
+      <div className="text-xs text-gray-500">Deal Value: ${extra?.value ?? 0}</div>
       {extra?.hasDeadline && extra.deadline && (
         <div className="text-xs text-red-600">Due: {extra.deadline}</div>
       )}
@@ -198,6 +198,7 @@ function StageColumn({
     ? { transform: `translate3d(${colTransform.x}px, ${colTransform.y}px, 0)`, transition: colTransition }
     : { transition: colTransition };
   const [editing, setEditing] = useState(false);
+  const [tempName, setTempName] = useState(name);
   return (
     <div
       ref={ref}
@@ -206,13 +207,25 @@ function StageColumn({
     >
       <div className="mb-1 flex items-center gap-1">
         {editing ? (
-          <Input
-            autoFocus
-            className="w-full"
-            value={name}
-            onChange={(e) => onRename(e.target.value)}
-            onBlur={() => setEditing(false)}
-          />
+          <>
+            <Input
+              autoFocus
+              className="flex-1"
+              value={tempName}
+              onChange={(e) => setTempName(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                onRename(tempName);
+                setEditing(false);
+              }}
+              aria-label="Confirm column name"
+              className="text-xs text-green-600"
+            >
+              ✓
+            </button>
+          </>
         ) : (
           <>
             <span className="flex-1 text-sm font-semibold">{name}</span>
@@ -521,13 +534,48 @@ export default function DealsPage() {
   }
 
   async function deleteSelected() {
+    if (!confirm("Delete selected deals?")) return;
+    const deleted = data?.deals.filter((d) => selectedIds.has(d.id)) || [];
     await Promise.all(
-      Array.from(selectedIds).map((id) =>
-        fetch(`/api/deal/${id}`, { method: "DELETE" }),
-      ),
+      deleted.map((d) => fetch(`/api/deal/${d.id}`, { method: "DELETE" })),
     );
+    setExtras((ex) => {
+      const copy = { ...ex };
+      deleted.forEach((d) => delete copy[d.id]);
+      return copy;
+    });
     setSelectedIds(new Set());
     mutate();
+    toast.success("Deal deleted", {
+      duration: 3000,
+      action: {
+        label: "Undo",
+        onClick: async () => {
+          for (const d of deleted) {
+            const res = await fetch("/api/deals", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ contactId: d.contact.id }),
+            });
+            const json = await res.json();
+            if (json.deal) {
+              if (d.stage !== "NEW") {
+                await fetch(`/api/deal/${json.deal.id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ stage: d.stage }),
+                });
+              }
+              setExtras((ex) => ({
+                ...ex,
+                [json.deal.id]: extras[d.id],
+              }));
+            }
+          }
+          mutate();
+        },
+      },
+    });
   }
 
   function addTagSelected(tag: string) {
@@ -567,6 +615,25 @@ export default function DealsPage() {
   function handleSave() {
     toast.success("Deal saved");
     setDrawerDeal(null);
+  }
+
+  function handleDeleteColumn(id: string) {
+    if (!confirm("Delete this column?")) return;
+    const index = stages.findIndex((s) => s.id === id);
+    if (index === -1) return;
+    const removed = stages[index];
+    updateStages(stages.filter((s) => s.id !== id));
+    toast.success("Column deleted", {
+      duration: 3000,
+      action: {
+        label: "Undo",
+        onClick: () => {
+          const copy = [...stages];
+          copy.splice(index, 0, removed);
+          updateStages(copy);
+        },
+      },
+    });
   }
 
   async function saveClientName() {
@@ -746,9 +813,7 @@ export default function DealsPage() {
                     stages.map((s) => (s.id === stage.id ? { ...s, name } : s)),
                   )
                 }
-                onDelete={() =>
-                  updateStages(stages.filter((s) => s.id !== stage.id))
-                }
+                onDelete={() => handleDeleteColumn(stage.id)}
                 deals={dealsByStage[stage.id]}
                 extras={extras}
                 selected={selectedIds}
@@ -845,7 +910,7 @@ export default function DealsPage() {
               </Button>
             </div>
             <label className="flex flex-col text-sm">
-              <span>Value</span>
+              <span>Deal Value</span>
               <Input
                 type="number"
                 value={extras[drawerDeal.id]?.value ?? 0}
