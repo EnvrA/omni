@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR from "swr";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   DndContext,
   useDraggable,
@@ -56,6 +56,16 @@ interface Pipeline {
 
 function slugify(name: string) {
   return name.trim().toUpperCase().replace(/\s+/g, "_");
+}
+
+function uniqBy<T>(arr: T[], getKey: (item: T) => string): T[] {
+  const seen = new Set<string>();
+  return arr.filter((item) => {
+    const key = getKey(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function DraggableCard({
@@ -138,7 +148,9 @@ function DraggableCard({
       <div className="text-xs text-gray-600">
         {deal.contact.name || "Unnamed"}
       </div>
-      <div className="text-xs text-gray-500">Deal Value: ${extra?.value ?? 0}</div>
+      <div className="text-xs text-gray-500">
+        Deal Value: ${extra?.value ?? 0}
+      </div>
       {extra?.hasDeadline && extra.deadline && (
         <div className="text-xs text-red-600">Due: {extra.deadline}</div>
       )}
@@ -179,23 +191,29 @@ function StageColumn({
   openDeal: (d: Deal) => void;
   drawerDeal: Deal | null;
 }) {
-  const {
-    isOver,
-    setNodeRef: setDropRef,
-  } = useDroppable({ id: stage, data: { stage, column: stage } });
+  const { isOver, setNodeRef: setDropRef } = useDroppable({
+    id: stage,
+    data: { stage, column: stage },
+  });
   const {
     attributes: colAttributes,
     listeners: colListeners,
     setNodeRef: setDragRef,
     transform: colTransform,
     transition: colTransition,
-  } = useDraggable({ id: `column-${stage}`, data: { column: stage, type: "column" } });
+  } = useDraggable({
+    id: `column-${stage}`,
+    data: { column: stage, type: "column" },
+  });
   const ref = (node: HTMLElement | null) => {
     setDropRef(node);
     setDragRef(node);
   };
   const style = colTransform
-    ? { transform: `translate3d(${colTransform.x}px, ${colTransform.y}px, 0)`, transition: colTransition }
+    ? {
+        transform: `translate3d(${colTransform.x}px, ${colTransform.y}px, 0)`,
+        transition: colTransition,
+      }
     : { transition: colTransition };
   const [editing, setEditing] = useState(false);
   const [tempName, setTempName] = useState(name);
@@ -308,26 +326,36 @@ export default function DealsPage() {
       };
     }
     try {
-      const stored = JSON.parse(localStorage.getItem("dealPipelines") || "null");
+      const stored = JSON.parse(
+        localStorage.getItem("dealPipelines") || "null",
+      );
       if (stored?.pipelines) return stored.pipelines;
     } catch {}
-    return { default: { id: "default", name: "Default", stages: defaultStages } };
+    return {
+      default: { id: "default", name: "Default", stages: defaultStages },
+    };
   });
   const [currentPipeline, setCurrentPipeline] = useState<string>(() => {
     if (typeof window === "undefined") return "default";
     try {
-      const stored = JSON.parse(localStorage.getItem("dealPipelines") || "null");
+      const stored = JSON.parse(
+        localStorage.getItem("dealPipelines") || "null",
+      );
       if (stored?.current) return stored.current;
     } catch {}
     return "default";
   });
 
   const stages = pipelines[currentPipeline]?.stages || defaultStages;
+  const stageList = useMemo(() => uniqBy(stages, (s) => s.id), [stages]);
 
   function updateStages(newStages: Stage[]) {
     setPipelines((p) => ({
       ...p,
-      [currentPipeline]: { ...p[currentPipeline], stages: newStages },
+      [currentPipeline]: {
+        ...p[currentPipeline],
+        stages: uniqBy(newStages, (s) => s.id),
+      },
     }));
   }
 
@@ -405,7 +433,7 @@ export default function DealsPage() {
     if (typeof window !== "undefined") {
       localStorage.setItem(
         "dealPipelines",
-        JSON.stringify({ pipelines, current: currentPipeline })
+        JSON.stringify({ pipelines, current: currentPipeline }),
       );
     }
   }, [pipelines, currentPipeline]);
@@ -459,7 +487,7 @@ export default function DealsPage() {
   };
 
   const dealsByStage: Record<string, Deal[]> = {};
-  stages.forEach((s) => {
+  stageList.forEach((s) => {
     dealsByStage[s.id] = [];
   });
   filteredDeals.forEach((d) => {
@@ -467,7 +495,7 @@ export default function DealsPage() {
   });
 
   const totalDeals = filteredDeals.length;
-  const lastStage = stages[stages.length - 1]?.id || "";
+  const lastStage = stageList[stageList.length - 1]?.id || "";
   const winRate =
     totalDeals && lastStage
       ? Math.round((dealsByStage[lastStage].length / totalDeals) * 100)
@@ -735,7 +763,7 @@ export default function DealsPage() {
 
       <div className="flex flex-wrap gap-4 text-sm">
         <span>Total: {totalDeals}</span>
-        {stages.map((s) => (
+        {stageList.map((s) => (
           <span key={s.id}>
             {s.name}: {dealsByStage[s.id].length}
           </span>
@@ -755,7 +783,7 @@ export default function DealsPage() {
             }}
           >
             <option value="">Move to stage</option>
-            {stages.map((s) => (
+            {stageList.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
               </option>
@@ -803,7 +831,7 @@ export default function DealsPage() {
       {data && (
         <DndContext onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-            {stages.map((stage) => (
+            {stageList.map((stage) => (
               <StageColumn
                 key={stage.id}
                 stage={stage.id}
@@ -911,7 +939,11 @@ export default function DealsPage() {
                   <option key={c.id} value={c.name || c.id} />
                 ))}
               </datalist>
-              <Button type="button" onClick={saveClientName} aria-label="Save client name">
+              <Button
+                type="button"
+                onClick={saveClientName}
+                aria-label="Save client name"
+              >
                 Save
               </Button>
             </div>
