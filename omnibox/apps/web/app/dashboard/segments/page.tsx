@@ -46,7 +46,11 @@ export default function SegmentsPage() {
           onChange={(e) => setName(e.target.value)}
           placeholder="Segment name"
         />
-        <Button type="submit" className="bg-green-600 text-white">
+        <Button
+          type="submit"
+          onClick={addSegment}
+          className="bg-green-600 text-white"
+        >
           Create segment
         </Button>
       </form>
