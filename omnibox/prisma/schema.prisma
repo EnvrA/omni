@@ -40,23 +40,24 @@ model User {
   contacts       Contact[]
   deals          Deal[]
   stripeCustomer StripeCustomer?
+  quickReplies   QuickReply[]
 }
 
 model Contact {
-  id       String    @id @default(uuid())
-  userId   String
-  phone    String?
-  name     String?
-  email    String?
-  company  String?
-  notes    String?
-  tag      String?
-  avatar   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
-  messages Message[]
-  User     User      @relation(fields: [userId], references: [id])
-  Deal     Deal[]
+  id        String    @id @default(uuid())
+  userId    String
+  phone     String?
+  name      String?
+  email     String?
+  company   String?
+  notes     String?
+  tag       String?
+  avatar    String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now())
+  messages  Message[]
+  User      User      @relation(fields: [userId], references: [id])
+  Deal      Deal[]
 
   @@unique([phone, userId], name: "phone_userId")
 }
@@ -136,9 +137,9 @@ model TwilioNumber {
 }
 
 model QuickReply {
-  id     String   @id @default(uuid())
+  id     String @id @default(uuid())
   userId String
   label  String
   text   String
-  user   User     @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
 }
