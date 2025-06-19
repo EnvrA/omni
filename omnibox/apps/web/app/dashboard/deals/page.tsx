@@ -333,14 +333,14 @@ export default function DealsPage() {
 
   const [showAdd, setShowAdd] = useState(false);
   const [showTags, setShowTags] = useState(false);
+  const [drawerDeal, setDrawerDeal] = useState<Deal | null>(null);
   const { data: contacts } = useSWR<{
     contacts: { id: string; name: string | null }[];
-  }>(showAdd ? "/api/contacts" : null, fetcher);
+  }>(showAdd || drawerDeal ? "/api/contacts" : null, fetcher);
   const [contactId, setContactId] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [contactName, setContactName] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [drawerDeal, setDrawerDeal] = useState<Deal | null>(null);
   const [extras, setExtras] = useState<Record<string, DealExtra>>(() => {
     if (typeof window === "undefined") return {};
     try {
@@ -900,11 +900,17 @@ export default function DealsPage() {
             />
             <div className="flex gap-2">
               <Input
+                list="client-options"
                 value={contactName}
                 onChange={(e) => setContactName(e.target.value)}
                 className="flex-1"
                 placeholder="Client name"
               />
+              <datalist id="client-options">
+                {contacts?.contacts?.map((c) => (
+                  <option key={c.id} value={c.name || c.id} />
+                ))}
+              </datalist>
               <Button type="button" onClick={saveClientName} aria-label="Save client name">
                 Save
               </Button>
