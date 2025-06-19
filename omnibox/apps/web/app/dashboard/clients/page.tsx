@@ -541,9 +541,10 @@ export default function ClientsPage() {
       )}
 
       {confirmDelete && (
-        <dialog
-          open
-          className="fixed inset-0 flex items-center justify-center bg-black/50"
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
           onClick={() => setConfirmDelete(null)}
         >
           <div
@@ -572,7 +573,7 @@ export default function ClientsPage() {
               </Button>
             </div>
           </div>
-        </dialog>
+        </div>
       )}
 
       <TagManager

@@ -503,7 +503,7 @@ export default function DealsPage() {
 
   async function addDeal(e: React.FormEvent) {
     e.preventDefault();
-    if (!contactId) return;
+    if (!contactId || !newTitle) return;
     const res = await fetch("/api/deals", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -878,6 +878,7 @@ export default function DealsPage() {
               placeholder="Title"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
+              required
             />
             <select
               className="w-full rounded border p-1"
@@ -895,7 +896,7 @@ export default function DealsPage() {
               <Button type="button" onClick={() => setShowAdd(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={!contactId}>
+              <Button type="submit" disabled={!contactId || !newTitle}>
                 Save
               </Button>
             </div>
