@@ -40,17 +40,30 @@ async function main() {
   /* ------------------------------------------------------------------ *
    * 5 · Fresh demo contacts + messages                                 *
    * ------------------------------------------------------------------ */
-  const contact1 = await prisma.contact.create({
-    data: {
-      userId: user.id,
-      name:   "Alice",
-      phone:  "+31612345678",
-      email:  "alice@example.com",
+  const contactsData = [
+    {
+      name: "Alice",
+      phone: "+31612345678",
+      email: "alice@example.com",
       company: "Wonderland Co.",
-      notes:   "Met at conference",
-      tag:     "VIP",
+      notes: "Met at conference",
+      tag: "VIP",
     },
-  })
+    {
+      name: "Bob",
+      phone: "+31698765432",
+      email: "bob@example.com",
+      company: "Builder Inc.",
+      notes: "Potential partner",
+      tag: "New Client",
+    },
+  ]
+
+  const [contact1, contact2] = await Promise.all(
+    contactsData.map((c) =>
+      prisma.contact.create({ data: { userId: user.id, ...c } }),
+    ),
+  )
 
   await prisma.message.create({
   data: {
@@ -62,18 +75,6 @@ async function main() {
     sentAt:    new Date(),
   },
 })
-
-  const contact2 = await prisma.contact.create({
-    data: {
-      userId: user.id,
-      name:   "Bob",
-      phone:  "+31698765432",
-      email:  "bob@example.com",
-      company: "Builder Inc.",
-      notes:   "Potential partner",
-      tag:     "New Client",
-    },
-  })
 
   await prisma.message.create({
   data: {
