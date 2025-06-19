@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { serverSession } from "@/lib/auth";
+import { Prisma } from "@prisma/client";
 
 export async function GET() {
   const session = await serverSession();
@@ -69,18 +70,30 @@ export async function POST(req: NextRequest) {
     avatar?: string;
   };
 
-  const client = await prisma.contact.create({
-    data: {
-      userId: user.id,
-      name,
-      email: clientEmail,
-      phone,
-      company,
-      notes,
-      tag,
-      avatar,
-    },
-  });
-
-  return NextResponse.json({ client }, { status: 201 });
+  try {
+    const client = await prisma.contact.create({
+      data: {
+        userId: user.id,
+        name,
+        email: clientEmail,
+        phone,
+        company,
+        notes,
+        tag,
+        avatar,
+      },
+    });
+    return NextResponse.json({ client }, { status: 201 });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return NextResponse.json(
+        { error: "Phone number already exists" },
+        { status: 400 },
+      );
+    }
+    throw error;
+  }
 }

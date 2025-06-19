@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { serverSession } from "@/lib/auth";
+import { Prisma } from "@prisma/client";
 
 export async function PATCH(
   req: NextRequest,
@@ -34,12 +35,25 @@ export async function PATCH(
     avatar?: string;
   };
 
-  const client = await prisma.contact.update({
-    where: { id: params.id, userId: user.id },
-    data: { name, email: clientEmail, phone, company, notes, tag, avatar },
-  });
+  try {
+    const client = await prisma.contact.update({
+      where: { id: params.id, userId: user.id },
+      data: { name, email: clientEmail, phone, company, notes, tag, avatar },
+    });
 
-  return NextResponse.json({ client });
+    return NextResponse.json({ client });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return NextResponse.json(
+        { error: "Phone number already exists" },
+        { status: 400 },
+      );
+    }
+    throw error;
+  }
 }
 
 export async function DELETE(
