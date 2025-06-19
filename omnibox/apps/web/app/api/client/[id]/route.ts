@@ -35,9 +35,10 @@ export async function PATCH(
     avatar?: string;
   };
 
+  const { id } = await params;
   try {
     const client = await prisma.contact.update({
-      where: { id: params.id, userId: user.id },
+      where: { id, userId: user.id },
       data: { name, email: clientEmail, phone, company, notes, tag, avatar },
     });
 
@@ -69,7 +70,9 @@ export async function DELETE(
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  await prisma.contact.delete({ where: { id: params.id, userId: user.id } });
+  const { id } = await params;
+  await prisma.deal.deleteMany({ where: { contactId: id, userId: user.id } });
+  await prisma.contact.delete({ where: { id, userId: user.id } });
 
   return NextResponse.json({});
 }
