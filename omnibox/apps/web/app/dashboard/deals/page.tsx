@@ -645,6 +645,48 @@ export default function DealsPage() {
     setDrawerDeal(null);
   }
 
+  async function handleDeleteDeal(id: string) {
+    if (!confirm("Delete this deal?")) return;
+    const deal = data?.deals.find((d) => d.id === id);
+    if (!deal) return;
+    await fetch(`/api/deal/${id}`, { method: "DELETE" });
+    setExtras((ex) => {
+      const copy = { ...ex };
+      delete copy[id];
+      return copy;
+    });
+    mutate();
+    toast.success("Deal deleted", {
+      duration: 3000,
+      action: {
+        label: "Undo",
+        onClick: async () => {
+          const res = await fetch("/api/deals", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contactId: deal.contact.id }),
+          });
+          const json = await res.json();
+          if (json.deal) {
+            if (deal.stage !== "NEW") {
+              await fetch(`/api/deal/${json.deal.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ stage: deal.stage }),
+              });
+            }
+            setExtras((ex) => ({
+              ...ex,
+              [json.deal.id]: extras[id],
+            }));
+            mutate();
+          }
+        },
+      },
+    });
+    setDrawerDeal(null);
+  }
+
   function handleDeleteColumn(id: string) {
     if (!confirm("Delete this column?")) return;
     const index = stages.findIndex((s) => s.id === id);
@@ -1043,9 +1085,16 @@ export default function DealsPage() {
               <Button type="button">Send Email</Button>
             </div>
             <hr className="my-2" />
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
               <Button type="button" onClick={() => setDrawerDeal(null)}>
                 Close
+              </Button>
+              <Button
+                type="button"
+                onClick={() => handleDeleteDeal(drawerDeal.id)}
+                className="text-red-600"
+              >
+                Delete
               </Button>
               <button
                 type="button"
