@@ -8,6 +8,7 @@ interface Segment {
   id: string;
   name: string;
   field: string;
+  value?: string;
 }
 
 interface Client {
@@ -30,6 +31,12 @@ interface Appointment {
   clientId?: string;
 }
 
+interface Criterion {
+  id: string;
+  field: string;
+  value: string;
+}
+
 const fetcher = async (url: string) => {
   const res = await fetch(url);
   const text = await res.text();
@@ -49,6 +56,7 @@ export default function SegmentsPage() {
   const { data: clients } = useSWR<{ clients: Client[] }>("/api/clients", fetcher);
   const { data: deals } = useSWR<{ deals: Deal[] }>("/api/deals", fetcher);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [criteria, setCriteria] = useState<Criterion[]>([]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -74,28 +82,58 @@ export default function SegmentsPage() {
     const list = clients?.clients || [];
     switch (seg.field) {
       case "phone":
-        return list.filter((c) => c.phone);
+        return seg.value
+          ? list.filter((c) => c.phone?.includes(seg.value || ""))
+          : list.filter((c) => c.phone);
       case "email":
-        return list.filter((c) => c.email);
+        return seg.value
+          ? list.filter((c) => c.email?.includes(seg.value))
+          : list.filter((c) => c.email);
       case "company":
-        return list.filter((c) => c.company);
+        return seg.value
+          ? list.filter((c) => c.company?.toLowerCase().includes(seg.value!.toLowerCase()))
+          : list.filter((c) => c.company);
       case "tag":
-        return list.filter((c) => c.tag);
+        return seg.value
+          ? list.filter((c) => c.tag === seg.value)
+          : list.filter((c) => c.tag);
       case "notes":
-        return list.filter((c) => c.notes);
+        return seg.value
+          ? list.filter((c) => c.notes?.toLowerCase().includes(seg.value!.toLowerCase()))
+          : list.filter((c) => c.notes);
       case "deal": {
         const dealIds = new Set((deals?.deals || []).map((d) => d.contact.id));
-        return list.filter((c) => dealIds.has(c.id));
+        const hasDeal = list.filter((c) => dealIds.has(c.id));
+        return seg.value
+          ? hasDeal.filter((c) =>
+              c.name?.toLowerCase().includes(seg.value!.toLowerCase()),
+            )
+          : hasDeal;
       }
       case "appointment": {
         const appIds = new Set(
           appointments.map((a) => a.clientId).filter(Boolean) as string[],
         );
-        return list.filter((c) => appIds.has(c.id));
+        const hasApp = list.filter((c) => appIds.has(c.id));
+        return seg.value
+          ? hasApp.filter((c) =>
+              c.name?.toLowerCase().includes(seg.value!.toLowerCase()),
+            )
+          : hasApp;
       }
       default:
         return list;
     }
+  }
+
+  function clientsByCriteria(): Client[] {
+    const list = clients?.clients || [];
+    return criteria.reduce((acc, cr) => {
+      return acc.filter((c) => {
+        const val = (c as any)[cr.field] as string | null | undefined;
+        return val ? val.toLowerCase().includes(cr.value.toLowerCase()) : false;
+      });
+    }, list);
   }
 
   function addSegment(e: React.FormEvent) {
@@ -121,6 +159,73 @@ export default function SegmentsPage() {
       >
         Create segment
       </Button>
+      <div className="space-y-2 rounded border p-3">
+        <h2 className="font-semibold">Filter Clients</h2>
+        {criteria.map((cr) => (
+          <div key={cr.id} className="flex items-center gap-2">
+            <select
+              className="rounded border p-1"
+              value={cr.field}
+              onChange={(e) =>
+                setCriteria((c) =>
+                  c.map((cc) =>
+                    cc.id === cr.id ? { ...cc, field: e.target.value } : cc,
+                  ),
+                )
+              }
+            >
+              <option value="name">Name</option>
+              <option value="email">Email</option>
+              <option value="phone">Phone</option>
+              <option value="company">Company</option>
+              <option value="tag">Tag</option>
+              <option value="notes">Notes</option>
+            </select>
+            <Input
+              value={cr.value}
+              onChange={(e) =>
+                setCriteria((c) =>
+                  c.map((cc) =>
+                    cc.id === cr.id ? { ...cc, value: e.target.value } : cc,
+                  ),
+                )
+              }
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              onClick={() => setCriteria((c) => c.filter((cc) => cc.id !== cr.id))}
+            >
+              Remove
+            </Button>
+          </div>
+        ))}
+        <div className="flex justify-between">
+          <Button
+            type="button"
+            onClick={() =>
+              setCriteria((c) => [...c, { id: uuid(), field: "name", value: "" }])
+            }
+          >
+            Add criteria
+          </Button>
+          {criteria.length > 0 && (
+            <span className="text-sm text-gray-600">Matches: {clientsByCriteria().length}</span>
+          )}
+        </div>
+      </div>
+      {criteria.length > 0 && (
+        <div className="space-y-1">
+          {clientsByCriteria().map((c) => (
+            <div key={c.id} className="text-sm">
+              {c.name || c.id}
+            </div>
+          ))}
+          {clientsByCriteria().length === 0 && (
+            <div className="text-sm text-gray-500">No matching clients</div>
+          )}
+        </div>
+      )}
       <div className="space-y-2">
         {segments.map((s) => (
           <Card
@@ -130,7 +235,12 @@ export default function SegmentsPage() {
           >
             <span>
               {s.name}
-              <span className="ml-1 text-xs text-gray-500">({s.field})</span>
+              <span className="ml-1 text-xs text-gray-500">
+                ({s.field})
+              </span>
+              <span className="ml-1 text-xs text-gray-500">
+                {clientsForSegment(s).length}
+              </span>
             </span>
             <Button
               type="button"
