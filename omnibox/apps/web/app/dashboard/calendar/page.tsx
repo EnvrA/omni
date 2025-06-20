@@ -243,7 +243,10 @@ export default function CalendarPage() {
           ◀
         </Button>
         <span className="mx-1 font-semibold">
-          {currentDate.toLocaleString("default", { month: "long", year: "numeric" })}
+          {currentDate.toLocaleString("en-US", {
+            month: "long",
+            year: "numeric",
+          })}
         </span>
         <Button type="button" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth()+1, 1))}>
           ▶
@@ -279,7 +282,7 @@ export default function CalendarPage() {
                 style={{ background: eventColor(ev) }}
               >
                 <span className="truncate text-sm font-medium text-gray-800">
-                  {new Date(ev.date).toLocaleString()} - {ev.title}
+                  {new Date(ev.date).toLocaleString("en-US")} - {ev.title}
                 </span>
               </li>
             ))}
@@ -424,7 +427,7 @@ export default function CalendarPage() {
           >
             <h2 className="font-semibold">{detail.title}</h2>
             <p className="text-sm text-gray-600">
-              {new Date(detail.date).toLocaleString()}
+              {new Date(detail.date).toLocaleString("en-US")}
             </p>
             {detail.clientId && (
               <p className="text-sm">
