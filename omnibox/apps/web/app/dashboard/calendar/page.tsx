@@ -17,6 +17,14 @@ interface Appointment {
   id: string;
   title: string;
   date: string;
+  clientId?: string;
+  service?: string;
+  value?: number;
+}
+
+interface Client {
+  id: string;
+  name: string | null;
 }
 
 const fetcher = async (url: string) => {
@@ -31,10 +39,19 @@ const fetcher = async (url: string) => {
 
 export default function CalendarPage() {
   const { data } = useSWR<{ deals: Deal[] }>("/api/deals", fetcher);
+  const { data: clients } = useSWR<{ clients: Client[] }>("/api/clients", fetcher);
   const [extras, setExtras] = useState<Record<string, DealExtra>>({});
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
+  const [clientId, setClientId] = useState("");
+  const [clientSearch, setClientSearch] = useState("");
+  const [service, setService] = useState("");
+  const [value, setValue] = useState("");
+  const [search, setSearch] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [showModal, setShowModal] = useState(false);
   const [view, setView] = useState<"week" | "month">("week");
 
@@ -69,21 +86,28 @@ export default function CalendarPage() {
       })),
   ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  const now = new Date();
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay());
+  const startOfWeek = new Date(currentDate);
+  startOfWeek.setDate(currentDate.getDate() - ((currentDate.getDay() + 6) % 7));
   const endOfWeek = new Date(startOfWeek);
   endOfWeek.setDate(startOfWeek.getDate() + 7);
 
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
   const filteredEvents = events.filter((ev) => {
     const d = new Date(ev.date);
-    if (view === "week") {
-      return d >= startOfWeek && d < endOfWeek;
-    }
-    return d >= startOfMonth && d <= endOfMonth;
+    const inView =
+      view === "week"
+        ? d >= startOfWeek && d < endOfWeek
+        : d >= startOfMonth && d <= endOfMonth;
+    const inRange =
+      (!fromDate || d >= new Date(fromDate)) &&
+      (!toDate || d <= new Date(toDate));
+    const matchSearch =
+      !search || ev.type !== "Deal Deadline"
+        ? true
+        : ev.title.toLowerCase().includes(search.toLowerCase());
+    return inView && inRange && matchSearch;
   });
 
   function isSameDay(a: Date, b: Date) {
@@ -102,7 +126,7 @@ export default function CalendarPage() {
 
   const monthDays = (() => {
     const start = new Date(startOfMonth);
-    start.setDate(start.getDate() - start.getDay());
+    start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
     return Array.from({ length: 42 }).map((_, i) => {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
@@ -113,26 +137,35 @@ export default function CalendarPage() {
   function addAppointment(e: React.FormEvent) {
     e.preventDefault();
     if (!title || !date) return;
-    setAppointments((a) => [...a, { id: uuid(), title, date }]);
+    setAppointments((a) => [
+      ...a,
+      {
+        id: uuid(),
+        title,
+        date,
+        clientId: clientId || undefined,
+        service,
+        value: value ? Number(value) : undefined,
+      },
+    ]);
     setTitle("");
     setDate("");
+    setClientId("");
+    setClientSearch("");
+    setService("");
+    setValue("");
     setShowModal(false);
   }
 
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Calendar</h1>
-      <div
-        className="flex items-center gap-2"
-        aria-label="Select calendar view"
-      >
+      <div className="flex flex-wrap items-center gap-2" aria-label="Calendar toolbar">
         <Button
           type="button"
           onClick={() => setView("week")}
           aria-pressed={view === "week"}
-          className={`${
-            view === "week" ? "bg-blue-600 text-white" : "bg-white"
-          }`}
+          className={`${view === "week" ? "bg-blue-600 text-white" : "bg-white"}`}
         >
           Week
         </Button>
@@ -140,22 +173,42 @@ export default function CalendarPage() {
           type="button"
           onClick={() => setView("month")}
           aria-pressed={view === "month"}
-          className={`${
-            view === "month" ? "bg-blue-600 text-white" : "bg-white"
-          }`}
+          className={`${view === "month" ? "bg-blue-600 text-white" : "bg-white"}`}
         >
           Month
         </Button>
+        <Button type="button" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth()-1, 1))}>
+          ◀
+        </Button>
+        <span className="mx-1 font-semibold">
+          {currentDate.toLocaleString("default", { month: "long", year: "numeric" })}
+        </span>
+        <Button type="button" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth()+1, 1))}>
+          ▶
+        </Button>
+        <Input
+          placeholder="Search deals"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-32"
+        />
+        <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+        <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+        <Button
+          type="button"
+          onClick={() => setShowModal(true)}
+          className="ml-auto bg-green-600 text-white"
+        >
+          Add appointment
+        </Button>
       </div>
-      <Button
-        type="button"
-        onClick={() => setShowModal(true)}
-        className="bg-green-600 text-white"
-      >
-        Add appointment
-      </Button>
       <div className="overflow-x-auto">
         <div className="grid grid-cols-7 gap-px bg-gray-200 text-sm">
+          {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d) => (
+            <div key={d} className="bg-gray-50 p-1 text-center font-semibold">
+              {d}
+            </div>
+          ))}
           {(view === "week" ? weekDays : monthDays).map((day, idx) => (
             <div key={idx} className="min-h-[80px] space-y-1 bg-white p-1">
               <div className="text-right text-xs text-gray-500">
@@ -195,6 +248,34 @@ export default function CalendarPage() {
               type="datetime-local"
               value={date}
               onChange={(e) => setDate(e.target.value)}
+            />
+            <Input
+              list="client-list"
+              value={clientSearch}
+              onChange={(e) => {
+                setClientSearch(e.target.value);
+                const c = clients?.clients.find(
+                  (cl) => cl.name === e.target.value,
+                );
+                setClientId(c?.id || "");
+              }}
+              placeholder="Client"
+            />
+            <datalist id="client-list">
+              {clients?.clients.map((c) => (
+                <option key={c.id} value={c.name || "Unnamed"} />
+              ))}
+            </datalist>
+            <Input
+              value={service}
+              onChange={(e) => setService(e.target.value)}
+              placeholder="Service"
+            />
+            <Input
+              type="number"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder="Value"
             />
             <div className="flex justify-end gap-2">
               <Button type="button" onClick={() => setShowModal(false)}>
