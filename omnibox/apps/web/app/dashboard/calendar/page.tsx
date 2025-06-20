@@ -35,6 +35,7 @@ export default function CalendarPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
+  const [showModal, setShowModal] = useState(false);
   const [view, setView] = useState<"week" | "month">("week");
 
   useEffect(() => {
@@ -85,12 +86,37 @@ export default function CalendarPage() {
     return d >= startOfMonth && d <= endOfMonth;
   });
 
+  function isSameDay(a: Date, b: Date) {
+    return (
+      a.getFullYear() === b.getFullYear() &&
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate()
+    );
+  }
+
+  const weekDays = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date(startOfWeek);
+    d.setDate(startOfWeek.getDate() + i);
+    return d;
+  });
+
+  const monthDays = (() => {
+    const start = new Date(startOfMonth);
+    start.setDate(start.getDate() - start.getDay());
+    return Array.from({ length: 42 }).map((_, i) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      return d;
+    });
+  })();
+
   function addAppointment(e: React.FormEvent) {
     e.preventDefault();
     if (!title || !date) return;
     setAppointments((a) => [...a, { id: uuid(), title, date }]);
     setTitle("");
     setDate("");
+    setShowModal(false);
   }
 
   return (
@@ -121,40 +147,66 @@ export default function CalendarPage() {
           Month
         </Button>
       </div>
-      <form
-        onSubmit={addAppointment}
-        className="flex flex-wrap items-end gap-2"
+      <Button
+        type="button"
+        onClick={() => setShowModal(true)}
+        className="bg-green-600 text-white"
       >
-        <Input
-          className="flex-1"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Appointment title"
-        />
-        <Input
-          type="datetime-local"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-        />
-        <Button
-          type="submit"
-          onClick={addAppointment}
-          className="bg-green-600 text-white"
-        >
-          Add appointment
-        </Button>
-      </form>
-      <div className="space-y-2">
-        {filteredEvents.map((ev, idx) => (
-          <Card key={idx} className="flex items-center justify-between gap-2">
-            <span>
-              {new Date(ev.date).toLocaleString()} – {ev.title}
-            </span>
-            <span className="text-xs text-gray-500">{ev.type}</span>
-          </Card>
-        ))}
-        {filteredEvents.length === 0 && <p>No events</p>}
+        Add appointment
+      </Button>
+      <div className="overflow-x-auto">
+        <div className="grid grid-cols-7 gap-px bg-gray-200 text-sm">
+          {(view === "week" ? weekDays : monthDays).map((day, idx) => (
+            <div key={idx} className="min-h-[80px] space-y-1 bg-white p-1">
+              <div className="text-right text-xs text-gray-500">
+                {day.getDate()}
+              </div>
+              {filteredEvents
+                .filter((ev) => isSameDay(new Date(ev.date), day))
+                .map((ev, i) => (
+                  <div key={i} className="rounded bg-blue-100 px-1 text-xs">
+                    {ev.title}
+                  </div>
+                ))}
+            </div>
+          ))}
+        </div>
       </div>
+
+      {showModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur"
+          onClick={() => setShowModal(false)}
+        >
+          <form
+            onSubmit={addAppointment}
+            className="w-80 space-y-2 rounded bg-white p-4 shadow"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-semibold">New Appointment</h2>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Title"
+            />
+            <Input
+              type="datetime-local"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+            <div className="flex justify-end gap-2">
+              <Button type="button" onClick={() => setShowModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-green-600 text-white">
+                Save
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
