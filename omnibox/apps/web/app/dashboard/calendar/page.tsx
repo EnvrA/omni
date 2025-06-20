@@ -162,25 +162,24 @@ export default function CalendarPage() {
       toast.error("Title and date required");
       return;
     }
+    let updated: Appointment[];
     if (editing) {
-      setAppointments((a) =>
-        a.map((ap) =>
-          ap.id === editing.id
-            ? {
-                ...ap,
-                title,
-                date,
-                clientId: clientId || undefined,
-                service,
-                value: value ? Number(value) : undefined,
-                color,
-              }
-            : ap,
-        ),
+      updated = appointments.map((ap) =>
+        ap.id === editing.id
+          ? {
+              ...ap,
+              title,
+              date,
+              clientId: clientId || undefined,
+              service,
+              value: value ? Number(value) : undefined,
+              color,
+            }
+          : ap,
       );
     } else {
-      setAppointments((a) => [
-        ...a,
+      updated = [
+        ...appointments,
         {
           id: uuid(),
           title,
@@ -190,7 +189,11 @@ export default function CalendarPage() {
           value: value ? Number(value) : undefined,
           color,
         },
-      ]);
+      ];
+    }
+    setAppointments(updated);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("appointments", JSON.stringify(updated));
     }
     setTitle("");
     setDate("");
@@ -465,9 +468,11 @@ export default function CalendarPage() {
                 className="text-red-600"
                 onClick={() => {
                   if (confirm("Delete this appointment?")) {
-                    setAppointments((a) =>
-                      a.filter((ap) => ap.id !== detail.id),
-                    );
+                    const updated = appointments.filter((ap) => ap.id !== detail.id);
+                    setAppointments(updated);
+                    if (typeof window !== "undefined") {
+                      localStorage.setItem("appointments", JSON.stringify(updated));
+                    }
                     setDetail(null);
                   }
                 }}
