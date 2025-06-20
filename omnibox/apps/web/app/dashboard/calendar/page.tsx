@@ -22,6 +22,7 @@ interface Appointment {
   clientId?: string;
   service?: string;
   value?: number;
+  color?: string;
 }
 
 interface Client {
@@ -50,12 +51,13 @@ export default function CalendarPage() {
   const [clientSearch, setClientSearch] = useState("");
   const [service, setService] = useState("");
   const [value, setValue] = useState("");
+  const [color, setColor] = useState("#bfdbfe");
   const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showModal, setShowModal] = useState(false);
-  const [view, setView] = useState<"day" | "week" | "month" | "agenda">("week");
+  const [view, setView] = useState<"day" | "week" | "month" | "agenda">("month");
   const [detail, setDetail] = useState<Appointment | null>(null);
   const [editing, setEditing] = useState<Appointment | null>(null);
   const { tags } = useTags("clients");
@@ -83,6 +85,7 @@ export default function CalendarPage() {
       title: a.title,
       date: a.date,
       clientId: a.clientId,
+      color: a.color,
     })),
     ...(data?.deals || [])
       .filter((d) => extras[d.id]?.hasDeadline && extras[d.id]?.deadline)
@@ -127,8 +130,9 @@ export default function CalendarPage() {
     );
   }
 
-  function eventColor(ev: { type: string; clientId?: string }) {
+  function eventColor(ev: { type: string; clientId?: string; color?: string }) {
     if (ev.type === "Appointment") {
+      if (ev.color) return ev.color;
       const cl = clients?.clients.find((c) => c.id === ev.clientId);
       const color = tags.find((t) => t.name === cl?.tag)?.color;
       return color || "#bfdbfe";
@@ -169,6 +173,7 @@ export default function CalendarPage() {
                 clientId: clientId || undefined,
                 service,
                 value: value ? Number(value) : undefined,
+                color,
               }
             : ap,
         ),
@@ -183,6 +188,7 @@ export default function CalendarPage() {
           clientId: clientId || undefined,
           service,
           value: value ? Number(value) : undefined,
+          color,
         },
       ]);
     }
@@ -192,6 +198,7 @@ export default function CalendarPage() {
     setClientSearch("");
     setService("");
     setValue("");
+    setColor("#bfdbfe");
     setEditing(null);
     setShowModal(false);
   }
@@ -379,6 +386,14 @@ export default function CalendarPage() {
               onChange={(e) => setValue(e.target.value)}
               placeholder="Value"
             />
+            <label className="flex items-center gap-2 text-sm">
+              <span>Color</span>
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+              />
+            </label>
             <div className="flex justify-end gap-2">
               <Button
                 type="button"
@@ -411,6 +426,13 @@ export default function CalendarPage() {
             <p className="text-sm text-gray-600">
               {new Date(detail.date).toLocaleString()}
             </p>
+            {detail.clientId && (
+              <p className="text-sm">
+                Client:{" "}
+                {clients?.clients.find((c) => c.id === detail.clientId)?.name ||
+                  "Unknown"}
+              </p>
+            )}
             {detail.service && <p className="text-sm">Service: {detail.service}</p>}
             {detail.value !== undefined && (
               <p className="text-sm">Value: {detail.value}</p>
@@ -428,6 +450,7 @@ export default function CalendarPage() {
                   );
                   setService(detail.service || "");
                   setValue(detail.value ? String(detail.value) : "");
+                  setColor(detail.color || "#bfdbfe");
                   setDetail(null);
                   setShowModal(true);
                 }}
@@ -438,8 +461,12 @@ export default function CalendarPage() {
                 type="button"
                 className="text-red-600"
                 onClick={() => {
-                  setAppointments((a) => a.filter((ap) => ap.id !== detail.id));
-                  setDetail(null);
+                  if (confirm("Delete this appointment?")) {
+                    setAppointments((a) =>
+                      a.filter((ap) => ap.id !== detail.id),
+                    );
+                    setDetail(null);
+                  }
                 }}
               >
                 Delete

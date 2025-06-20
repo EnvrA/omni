@@ -2,7 +2,7 @@
 
 import useSWR from "swr";
 import { useMemo, useState } from "react";
-import { Input, Button, Avatar } from "@/components/ui";
+import { Input, Button, Avatar, Spinner } from "@/components/ui";
 
 // Robust fetcher handles non-JSON gracefully
 const fetcher = async (url: string) => {
@@ -82,8 +82,12 @@ export default function InboxPage() {
         <h2 className="px-2 pb-3 text-lg font-semibold">Contacts</h2>
         {contactsError && (
           <div className="mb-2 px-2 text-red-500">
-            Error loading contacts:{" "}
-            {contactsError.message || String(contactsError)}
+            Error loading contacts: {contactsError.message || String(contactsError)}
+          </div>
+        )}
+        {!contacts && !contactsError && (
+          <div className="flex justify-center py-4">
+            <Spinner />
           </div>
         )}
         <ul className="space-y-1 px-2 pb-4 text-sm">
