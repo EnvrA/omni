@@ -42,9 +42,21 @@ const fetcher = async (url: string) => {
 
 export default function CalendarPage() {
   const { data } = useSWR<{ deals: Deal[] }>("/api/deals", fetcher);
-  const { data: clients } = useSWR<{ clients: Client[] }>("/api/clients", fetcher);
+  const { data: clients } = useSWR<{ clients: Client[] }>(
+    "/api/clients",
+    fetcher,
+  );
   const [extras, setExtras] = useState<Record<string, DealExtra>>({});
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return JSON.parse(localStorage.getItem("appointments") || "[]");
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [clientId, setClientId] = useState("");
@@ -57,7 +69,9 @@ export default function CalendarPage() {
   const [toDate, setToDate] = useState("");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showModal, setShowModal] = useState(false);
-  const [view, setView] = useState<"day" | "week" | "month" | "agenda">("month");
+  const [view, setView] = useState<"day" | "week" | "month" | "agenda">(
+    "month",
+  );
   const [detail, setDetail] = useState<Appointment | null>(null);
   const [editing, setEditing] = useState<Appointment | null>(null);
   const { tags } = useTags("clients");
@@ -66,9 +80,6 @@ export default function CalendarPage() {
     if (typeof window === "undefined") return;
     try {
       setExtras(JSON.parse(localStorage.getItem("dealExtras") || "{}"));
-    } catch {}
-    try {
-      setAppointments(JSON.parse(localStorage.getItem("appointments") || "[]"));
     } catch {}
   }, []);
 
@@ -103,8 +114,16 @@ export default function CalendarPage() {
   const endOfWeek = new Date(startOfWeek);
   endOfWeek.setDate(startOfWeek.getDate() + 7);
 
-  const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-  const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  const startOfMonth = new Date(
+    currentDate.getFullYear(),
+    currentDate.getMonth(),
+    1,
+  );
+  const endOfMonth = new Date(
+    currentDate.getFullYear(),
+    currentDate.getMonth() + 1,
+    0,
+  );
 
   const filteredEvents = events.filter((ev) => {
     const d = new Date(ev.date);
@@ -209,7 +228,10 @@ export default function CalendarPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Calendar</h1>
-      <div className="flex flex-wrap items-center gap-2" aria-label="Calendar toolbar">
+      <div
+        className="flex flex-wrap items-center gap-2"
+        aria-label="Calendar toolbar"
+      >
         <Button
           type="button"
           onClick={() => setView("day")}
@@ -242,7 +264,18 @@ export default function CalendarPage() {
         >
           Agenda
         </Button>
-        <Button type="button" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth()-1, 1))}>
+        <Button
+          type="button"
+          onClick={() =>
+            setCurrentDate(
+              new Date(
+                currentDate.getFullYear(),
+                currentDate.getMonth() - 1,
+                1,
+              ),
+            )
+          }
+        >
           ◀
         </Button>
         <span className="mx-1 font-semibold">
@@ -251,7 +284,18 @@ export default function CalendarPage() {
             year: "numeric",
           })}
         </span>
-        <Button type="button" onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth()+1, 1))}>
+        <Button
+          type="button"
+          onClick={() =>
+            setCurrentDate(
+              new Date(
+                currentDate.getFullYear(),
+                currentDate.getMonth() + 1,
+                1,
+              ),
+            )
+          }
+        >
           ▶
         </Button>
         <Input
@@ -260,8 +304,16 @@ export default function CalendarPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="w-32"
         />
-        <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-        <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+        <Input
+          type="date"
+          value={fromDate}
+          onChange={(e) => setFromDate(e.target.value)}
+        />
+        <Input
+          type="date"
+          value={toDate}
+          onChange={(e) => setToDate(e.target.value)}
+        />
         <Button
           type="button"
           onClick={() => setShowModal(true)}
@@ -291,7 +343,11 @@ export default function CalendarPage() {
             ))}
             {filteredEvents.length === 0 && (
               <div className="flex flex-col items-center gap-4 py-10 text-gray-500">
-                <img src="/window.svg" alt="empty" className="h-20 w-20 opacity-75" />
+                <img
+                  src="/window.svg"
+                  alt="empty"
+                  className="h-20 w-20 opacity-75"
+                />
                 <span>No appointments scheduled</span>
               </div>
             )}
@@ -299,14 +355,21 @@ export default function CalendarPage() {
         )}
         {view !== "agenda" && (
           <div className="grid grid-cols-7 gap-px bg-gray-200 text-sm">
-            {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((d) => (
+            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
               <div key={d} className="bg-gray-50 p-1 text-center font-semibold">
                 {d}
               </div>
             ))}
-            {(view === "day" ? [currentDate] : view === "week" ? weekDays : monthDays).map((day, idx) => (
+            {(view === "day"
+              ? [currentDate]
+              : view === "week"
+                ? weekDays
+                : monthDays
+            ).map((day, idx) => (
               <div key={idx} className="min-h-[80px] space-y-1 bg-white p-1">
-                <div className="text-right text-xs text-gray-500">{day.getDate()}</div>
+                <div className="text-right text-xs text-gray-500">
+                  {day.getDate()}
+                </div>
                 {filteredEvents
                   .filter((ev) => isSameDay(new Date(ev.date), day))
                   .map((ev) => (
@@ -323,19 +386,30 @@ export default function CalendarPage() {
                       {ev.title}
                     </div>
                   ))}
-                {filteredEvents.filter((ev) => isSameDay(new Date(ev.date), day)).length === 0 && view === "day" && (
-                  <div className="flex flex-col items-center gap-4 py-10 text-gray-500">
-                    <img src="/window.svg" alt="empty" className="h-20 w-20 opacity-75" />
-                    <span>No appointments scheduled</span>
-                  </div>
-                )}
+                {filteredEvents.filter((ev) =>
+                  isSameDay(new Date(ev.date), day),
+                ).length === 0 &&
+                  view === "day" && (
+                    <div className="flex flex-col items-center gap-4 py-10 text-gray-500">
+                      <img
+                        src="/window.svg"
+                        alt="empty"
+                        className="h-20 w-20 opacity-75"
+                      />
+                      <span>No appointments scheduled</span>
+                    </div>
+                  )}
               </div>
             ))}
           </div>
         )}
         {view !== "agenda" && filteredEvents.length === 0 && (
           <div className="flex flex-col items-center gap-4 py-10 text-gray-500">
-            <img src="/window.svg" alt="empty" className="h-20 w-20 opacity-75" />
+            <img
+              src="/window.svg"
+              alt="empty"
+              className="h-20 w-20 opacity-75"
+            />
             <span>No appointments scheduled</span>
           </div>
         )}
@@ -353,7 +427,9 @@ export default function CalendarPage() {
             className="w-80 space-y-2 rounded bg-white p-4 shadow"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-semibold">{editing ? "Edit" : "New"} Appointment</h2>
+            <h2 className="font-semibold">
+              {editing ? "Edit" : "New"} Appointment
+            </h2>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -439,7 +515,9 @@ export default function CalendarPage() {
                   "Unknown"}
               </p>
             )}
-            {detail.service && <p className="text-sm">Service: {detail.service}</p>}
+            {detail.service && (
+              <p className="text-sm">Service: {detail.service}</p>
+            )}
             {detail.value !== undefined && (
               <p className="text-sm">Value: {detail.value}</p>
             )}
@@ -452,7 +530,8 @@ export default function CalendarPage() {
                   setDate(detail.date);
                   setClientId(detail.clientId || "");
                   setClientSearch(
-                    clients?.clients.find((c) => c.id === detail.clientId)?.name || ""
+                    clients?.clients.find((c) => c.id === detail.clientId)
+                      ?.name || "",
                   );
                   setService(detail.service || "");
                   setValue(detail.value ? String(detail.value) : "");
@@ -468,10 +547,15 @@ export default function CalendarPage() {
                 className="text-red-600"
                 onClick={() => {
                   if (confirm("Delete this appointment?")) {
-                    const updated = appointments.filter((ap) => ap.id !== detail.id);
+                    const updated = appointments.filter(
+                      (ap) => ap.id !== detail.id,
+                    );
                     setAppointments(updated);
                     if (typeof window !== "undefined") {
-                      localStorage.setItem("appointments", JSON.stringify(updated));
+                      localStorage.setItem(
+                        "appointments",
+                        JSON.stringify(updated),
+                      );
                     }
                     setDetail(null);
                   }
