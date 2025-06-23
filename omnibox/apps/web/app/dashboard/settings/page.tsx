@@ -10,7 +10,7 @@ export default function SettingsPage() {
   const { data: billing } = useSWR<{ plan: string }>("/api/billing", fetcher);
 
   return (
-    <div className="px-6 py-4 space-y-6 max-w-md">
+    <div className="space-y-6 max-w-md">
       <div>
         <h2 className="mb-2 text-lg font-semibold">Profile</h2>
         <div className="space-y-2">
