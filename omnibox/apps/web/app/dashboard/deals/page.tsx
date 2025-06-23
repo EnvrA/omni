@@ -722,7 +722,7 @@ export default function DealsPage() {
   if (!mounted) return null;
 
   return (
-    <div className="relative space-y-4">
+    <div className="px-6 py-4 space-y-6 relative">
       {drawerDeal && (
         <div className="pointer-events-none fixed inset-0 z-40 bg-white/50 backdrop-blur-sm" />
       )}
