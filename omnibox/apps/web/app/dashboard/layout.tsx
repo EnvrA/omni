@@ -29,7 +29,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </Link>
         </nav>
       </aside>
-      <main className="flex-1 overflow-y-auto px-6 py-4 space-y-6">{children}</main>
+      <main className="flex-1 p-4 overflow-y-auto">{children}</main>
     </div>
   );
 }
