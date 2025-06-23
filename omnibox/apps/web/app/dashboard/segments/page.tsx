@@ -3,12 +3,19 @@ import { useState, useEffect } from "react";
 import { v4 as uuid } from "uuid";
 import { Input, Button, Card } from "@/components/ui";
 import { X } from "lucide-react";
+import { toast } from "sonner";
 import useSWR from "swr";
 
 interface Rule {
   id: string;
   field: string;
-  op: "equals" | "contains" | "exists";
+  op:
+    | "equals"
+    | "contains"
+    | "exists"
+    | "not_equals"
+    | "not_contains"
+    | "not_exists";
   value?: string;
 }
 
@@ -35,7 +42,13 @@ interface Client {
 interface Criterion {
   id: string;
   field: string;
-  op: "equals" | "contains" | "exists";
+  op:
+    | "equals"
+    | "contains"
+    | "exists"
+    | "not_equals"
+    | "not_contains"
+    | "not_exists";
   value?: string;
 }
 
@@ -78,9 +91,17 @@ export default function SegmentsPage() {
   function matchRule(c: Client, r: Rule): boolean {
     const val = (c as any)[r.field] as string | null | undefined;
     if (r.op === "exists") return Boolean(val);
-    if (!val) return false;
-    if (r.op === "equals") return val.toLowerCase() === (r.value || "").toLowerCase();
-    return val.toLowerCase().includes((r.value || "").toLowerCase());
+    if (r.op === "not_exists") return !val;
+    if (!val) return r.op === "not_equals" || r.op === "not_contains";
+    if (r.op === "equals")
+      return val.toLowerCase() === (r.value || "").toLowerCase();
+    if (r.op === "not_equals")
+      return val.toLowerCase() !== (r.value || "").toLowerCase();
+    if (r.op === "contains")
+      return val.toLowerCase().includes((r.value || "").toLowerCase());
+    if (r.op === "not_contains")
+      return !val.toLowerCase().includes((r.value || "").toLowerCase());
+    return false;
   }
 
   function clientsForSegment(seg: Segment): Client[] {
@@ -164,7 +185,19 @@ export default function SegmentsPage() {
   }
 
   function deleteSegment(id: string) {
+    if (!segments) return;
+    const seg = segments.find((s) => s.id === id);
+    if (!seg) return;
+    if (!confirm("Delete this segment?")) return;
     setSegments((s) => s.filter((seg) => seg.id !== id));
+    toast.success("Segment deleted", {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          setSegments((s) => [...(s || []), seg]);
+        },
+      },
+    });
   }
 
   return (
@@ -191,9 +224,19 @@ export default function SegmentsPage() {
               <Button
                 type="button"
                 onClick={() => {
-                  if (!segments) return;
+                  if (!segments || selectedIds.length === 0) return;
+                  if (!confirm(`Delete ${selectedIds.length} segment(s)?`)) return;
+                  const removed = segments.filter((seg) => selectedIds.includes(seg.id));
                   setSegments((s) => s!.filter((seg) => !selectedIds.includes(seg.id)));
                   setSelectedIds([]);
+                  toast.success(`Deleted ${removed.length} segment${removed.length > 1 ? "s" : ""}`, {
+                    action: {
+                      label: "Undo",
+                      onClick: () => {
+                        setSegments((s) => [...(s || []), ...removed]);
+                      },
+                    },
+                  });
                 }}
                 disabled={selectedIds.length === 0}
               >
@@ -362,10 +405,13 @@ export default function SegmentsPage() {
                   }
                 >
                   <option value="equals">equals</option>
+                  <option value="not_equals">doesn't equal</option>
                   <option value="contains">contains</option>
+                  <option value="not_contains">doesn't contain</option>
                   <option value="exists">exists</option>
+                  <option value="not_exists">doesn't exist</option>
                 </select>
-                {cr.op !== "exists" && (
+                {cr.op !== "exists" && cr.op !== "not_exists" && (
                   <Input
                     value={cr.value || ""}
                     onChange={(e) =>
