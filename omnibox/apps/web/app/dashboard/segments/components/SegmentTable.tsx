@@ -3,7 +3,6 @@ import InlineNameEditor from "./InlineNameEditor";
 import SegmentRowMenu from "./SegmentRowMenu";
 import BulkToolbar from "./BulkToolbar";
 import { Segment } from "../types";
-import { Input } from "@/components/ui";
 import { useState } from "react";
 
 interface Props {
@@ -28,30 +27,17 @@ export default function SegmentTable({
   onBulkExport,
 }: Props) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [search, setSearch] = useState("");
-
-  const filtered = segments.filter((s) =>
-    s.name.toLowerCase().includes(search.toLowerCase()),
-  );
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <Input
-          placeholder="Search segments"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-60"
-        />
-        <BulkToolbar
-          count={selectedIds.length}
-          onDelete={() => {
-            onBulkDelete(selectedIds);
-            setSelectedIds([]);
-          }}
-          onExport={() => onBulkExport(selectedIds)}
-        />
-      </div>
+      <BulkToolbar
+        count={selectedIds.length}
+        onDelete={() => {
+          onBulkDelete(selectedIds);
+          setSelectedIds([]);
+        }}
+        onExport={() => onBulkExport(selectedIds)}
+      />
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left">
@@ -63,7 +49,7 @@ export default function SegmentTable({
           </tr>
         </thead>
         <tbody>
-          {filtered.map((s) => (
+          {segments.map((s) => (
             <tr key={s.id} className="border-t">
               <td className="p-2">
                 <input
@@ -71,16 +57,23 @@ export default function SegmentTable({
                   checked={selectedIds.includes(s.id)}
                   onChange={(e) =>
                     setSelectedIds((ids) =>
-                      e.target.checked ? [...ids, s.id] : ids.filter((i) => i !== s.id),
+                      e.target.checked
+                        ? [...ids, s.id]
+                        : ids.filter((i) => i !== s.id),
                     )
                   }
                 />
               </td>
               <td className="p-2">
-                <InlineNameEditor value={s.name} onChange={(name) => onEdit(s, name)} />
+                <InlineNameEditor
+                  value={s.name}
+                  onChange={(name) => onEdit(s, name)}
+                />
               </td>
               <td className="p-2">{countFor(s)}</td>
-              <td className="p-2">{new Date(s.createdAt).toLocaleDateString()}</td>
+              <td className="p-2">
+                {new Date(s.createdAt).toLocaleDateString()}
+              </td>
               <td className="p-2 text-right">
                 <SegmentRowMenu
                   onRun={() => onRun(s)}
