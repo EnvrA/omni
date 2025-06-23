@@ -547,6 +547,7 @@ export default function CalendarPage() {
                 className="text-red-600"
                 onClick={() => {
                   if (confirm("Delete this appointment?")) {
+                    const removed = appointments.find((ap) => ap.id === detail.id);
                     const updated = appointments.filter(
                       (ap) => ap.id !== detail.id,
                     );
@@ -557,6 +558,26 @@ export default function CalendarPage() {
                         JSON.stringify(updated),
                       );
                     }
+                    toast.success("Appointment deleted", {
+                      duration: 3000,
+                      action:
+                        removed &&
+                        {
+                          label: "Undo",
+                          onClick: () => {
+                            setAppointments((aps) => {
+                              const restored = [...aps, removed];
+                              if (typeof window !== "undefined") {
+                                localStorage.setItem(
+                                  "appointments",
+                                  JSON.stringify(restored),
+                                );
+                              }
+                              return restored;
+                            });
+                          },
+                        },
+                    });
                     setDetail(null);
                   }
                 }}
