@@ -2,13 +2,22 @@
 import { useState, useEffect } from "react";
 import { v4 as uuid } from "uuid";
 import { Input, Button, Card } from "@/components/ui";
+import { X } from "lucide-react";
 import useSWR from "swr";
+
+interface Rule {
+  id: string;
+  field: string;
+  op: "equals" | "contains" | "exists";
+  value?: string;
+}
 
 interface Segment {
   id: string;
   name: string;
-  field: string;
-  value?: string;
+  rules: Rule[];
+  match: "AND" | "OR";
+  createdAt: string;
 }
 
 interface Client {
@@ -21,20 +30,13 @@ interface Client {
   tag: string | null;
 }
 
-interface Deal {
-  id: string;
-  contact: { id: string };
-}
-
-interface Appointment {
-  id: string;
-  clientId?: string;
-}
+// Additional interfaces reserved for future expansion
 
 interface Criterion {
   id: string;
   field: string;
-  value: string;
+  op: "equals" | "contains" | "exists";
+  value?: string;
 }
 
 const fetcher = async (url: string) => {
@@ -48,100 +50,116 @@ const fetcher = async (url: string) => {
 };
 
 export default function SegmentsPage() {
-  const [segments, setSegments] = useState<Segment[]>([]);
+  const [segments, setSegments] = useState<Segment[] | null>(null);
   const [name, setName] = useState("");
-  const [field, setField] = useState("phone");
+  const [logic, setLogic] = useState<"AND" | "OR">("AND");
   const [showModal, setShowModal] = useState(false);
   const [selected, setSelected] = useState<Segment | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [editSeg, setEditSeg] = useState<Segment | null>(null);
   const { data: clients } = useSWR<{ clients: Client[] }>("/api/clients", fetcher);
-  const { data: deals } = useSWR<{ deals: Deal[] }>("/api/deals", fetcher);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [criteria, setCriteria] = useState<Criterion[]>([]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       setSegments(JSON.parse(localStorage.getItem("segments") || "[]"));
-    } catch {}
+    } catch {
+      setSegments([]);
+    }
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      setAppointments(JSON.parse(localStorage.getItem("appointments") || "[]"));
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && segments) {
       localStorage.setItem("segments", JSON.stringify(segments));
     }
   }, [segments]);
 
+  function matchRule(c: Client, r: Rule): boolean {
+    const val = (c as any)[r.field] as string | null | undefined;
+    if (r.op === "exists") return Boolean(val);
+    if (!val) return false;
+    if (r.op === "equals") return val.toLowerCase() === (r.value || "").toLowerCase();
+    return val.toLowerCase().includes((r.value || "").toLowerCase());
+  }
+
   function clientsForSegment(seg: Segment): Client[] {
     const list = clients?.clients || [];
-    switch (seg.field) {
-      case "phone":
-        return seg.value
-          ? list.filter((c) => c.phone?.includes(seg.value || ""))
-          : list.filter((c) => c.phone);
-      case "email":
-        return seg.value
-          ? list.filter((c) => c.email?.includes(seg.value))
-          : list.filter((c) => c.email);
-      case "company":
-        return seg.value
-          ? list.filter((c) => c.company?.toLowerCase().includes(seg.value!.toLowerCase()))
-          : list.filter((c) => c.company);
-      case "tag":
-        return seg.value
-          ? list.filter((c) => c.tag === seg.value)
-          : list.filter((c) => c.tag);
-      case "notes":
-        return seg.value
-          ? list.filter((c) => c.notes?.toLowerCase().includes(seg.value!.toLowerCase()))
-          : list.filter((c) => c.notes);
-      case "deal": {
-        const dealIds = new Set((deals?.deals || []).map((d) => d.contact.id));
-        const hasDeal = list.filter((c) => dealIds.has(c.id));
-        return seg.value
-          ? hasDeal.filter((c) =>
-              c.name?.toLowerCase().includes(seg.value!.toLowerCase()),
-            )
-          : hasDeal;
+    return list.filter((c) => {
+      if (seg.match === "AND") {
+        return seg.rules.every((r) => matchRule(c, r));
       }
-      case "appointment": {
-        const appIds = new Set(
-          appointments.map((a) => a.clientId).filter(Boolean) as string[],
-        );
-        const hasApp = list.filter((c) => appIds.has(c.id));
-        return seg.value
-          ? hasApp.filter((c) =>
-              c.name?.toLowerCase().includes(seg.value!.toLowerCase()),
-            )
-          : hasApp;
-      }
-      default:
-        return list;
-    }
+      return seg.rules.some((r) => matchRule(c, r));
+    });
   }
 
   function clientsByCriteria(): Client[] {
     const list = clients?.clients || [];
-    return criteria.reduce((acc, cr) => {
-      return acc.filter((c) => {
-        const val = (c as any)[cr.field] as string | null | undefined;
-        return val ? val.toLowerCase().includes(cr.value.toLowerCase()) : false;
-      });
-    }, list);
+    if (criteria.length === 0) return list;
+    return list.filter((c) => {
+      if (logic === "AND") {
+        return criteria.every((cr) => matchRule(c, cr));
+      }
+      return criteria.some((cr) => matchRule(c, cr));
+    });
+  }
+
+  function openEdit(seg: Segment) {
+    setEditSeg(seg);
+    setName(seg.name);
+    setLogic(seg.match);
+    setCriteria(seg.rules);
+    setShowModal(true);
+  }
+
+  function openNew() {
+    setEditSeg(null);
+    setName("");
+    setLogic("AND");
+    setCriteria([]);
+    setShowModal(true);
+  }
+
+  function exportCSV(list: Client[]) {
+    const rows = [
+      ["Name", "Email", "Phone", "Company", "Tag"],
+      ...list.map((c) => [c.name, c.email, c.phone, c.company, c.tag]),
+    ];
+    const csv = rows.map((r) => r.map((v) => `"${v ?? ""}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "segment.csv";
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function addSegment(e: React.FormEvent) {
     e.preventDefault();
     if (!name) return;
-    setSegments((s) => [...s, { id: uuid(), name, field }]);
+    if (editSeg) {
+      setSegments((s) =>
+        s.map((seg) =>
+          seg.id === editSeg.id
+            ? { ...seg, name, rules: criteria, match: logic }
+            : seg,
+        ),
+      );
+    } else {
+      const newSeg: Segment = {
+        id: uuid(),
+        name,
+        rules: criteria,
+        match: logic,
+        createdAt: new Date().toISOString(),
+      };
+      setSegments((s) => [...s, newSeg]);
+    }
     setName("");
-    setField("phone");
+    setCriteria([]);
+    setLogic("AND");
+    setEditSeg(null);
     setShowModal(false);
   }
 
@@ -154,107 +172,101 @@ export default function SegmentsPage() {
       <h1 className="text-xl font-semibold">Segments</h1>
       <Button
         type="button"
-        onClick={() => setShowModal(true)}
+        onClick={openNew}
         className="bg-green-600 text-white"
       >
         Create segment
       </Button>
-      <div className="space-y-2 rounded border p-3">
-        <h2 className="font-semibold">Filter Clients</h2>
-        {criteria.map((cr) => (
-          <div key={cr.id} className="flex items-center gap-2">
-            <select
-              className="rounded border p-1"
-              value={cr.field}
-              onChange={(e) =>
-                setCriteria((c) =>
-                  c.map((cc) =>
-                    cc.id === cr.id ? { ...cc, field: e.target.value } : cc,
-                  ),
-                )
-              }
-            >
-              <option value="name">Name</option>
-              <option value="email">Email</option>
-              <option value="phone">Phone</option>
-              <option value="company">Company</option>
-              <option value="tag">Tag</option>
-              <option value="notes">Notes</option>
-            </select>
-            <Input
-              value={cr.value}
-              onChange={(e) =>
-                setCriteria((c) =>
-                  c.map((cc) =>
-                    cc.id === cr.id ? { ...cc, value: e.target.value } : cc,
-                  ),
-                )
-              }
-              className="flex-1"
-            />
-            <Button
-              type="button"
-              onClick={() => setCriteria((c) => c.filter((cc) => cc.id !== cr.id))}
-            >
-              Remove
+      <div className="space-y-2">
+        {segments === null && (
+          <div className="space-y-2 animate-pulse">
+            <div className="h-6 w-full rounded bg-gray-200" />
+            <div className="h-6 w-full rounded bg-gray-200" />
+            <div className="h-6 w-full rounded bg-gray-200" />
+          </div>
+        )}
+        {segments && segments.length > 0 && (
+          <>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                onClick={() => {
+                  if (!segments) return;
+                  setSegments((s) => s!.filter((seg) => !selectedIds.includes(seg.id)));
+                  setSelectedIds([]);
+                }}
+                disabled={selectedIds.length === 0}
+              >
+                Delete Selected
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  segments &&
+                    selectedIds.forEach((id) => {
+                      const seg = segments.find((s) => s.id === id);
+                      if (seg) exportCSV(clientsForSegment(seg));
+                    });
+                }}
+                disabled={selectedIds.length === 0}
+              >
+                Export CSV
+              </Button>
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left">
+                  <th className="w-4 p-2" />
+                  <th className="p-2">Name</th>
+                  <th className="p-2"># Members</th>
+                  <th className="p-2">Created</th>
+                  <th className="p-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {segments?.map((s) => (
+                  <tr key={s.id} className="border-t">
+                    <td className="p-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(s.id)}
+                        onChange={(e) => {
+                          setSelectedIds((ids) =>
+                            e.target.checked ? [...ids, s.id] : ids.filter((i) => i !== s.id),
+                          );
+                        }}
+                      />
+                    </td>
+                    <td className="p-2">{s.name}</td>
+                    <td className="p-2">{clientsForSegment(s).length}</td>
+                    <td className="p-2">{new Date(s.createdAt).toLocaleDateString()}</td>
+                    <td className="p-2 text-right space-x-2">
+                      <Button type="button" onClick={() => setSelected(s)}>Run</Button>
+                      <Button type="button" onClick={() => exportCSV(clientsForSegment(s))}>Export</Button>
+                      <Button type="button" onClick={() => openEdit(s)}>Edit</Button>
+                      <Button
+                        type="button"
+                        className="text-red-600"
+                        onClick={() => deleteSegment(s.id)}
+                      >
+                        Delete
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+        {segments && segments.length === 0 && (
+          <div className="flex flex-col items-center gap-4 py-10 text-gray-500">
+            <img src="/globe.svg" alt="empty" className="h-24 w-24 opacity-75" />
+            <span>No segments yet</span>
+            <Button type="button" onClick={openNew} className="bg-green-600 text-white">
+              Create your first segment
             </Button>
           </div>
-        ))}
-        <div className="flex justify-between">
-          <Button
-            type="button"
-            onClick={() =>
-              setCriteria((c) => [...c, { id: uuid(), field: "name", value: "" }])
-            }
-          >
-            Add criteria
-          </Button>
-          {criteria.length > 0 && (
-            <span className="text-sm text-gray-600">Matches: {clientsByCriteria().length}</span>
-          )}
-        </div>
-      </div>
-      {criteria.length > 0 && (
-        <div className="space-y-1">
-          {clientsByCriteria().map((c) => (
-            <div key={c.id} className="text-sm">
-              {c.name || c.id}
-            </div>
-          ))}
-          {clientsByCriteria().length === 0 && (
-            <div className="text-sm text-gray-500">No matching clients</div>
-          )}
-        </div>
-      )}
-      <div className="space-y-2">
-        {segments.map((s) => (
-          <Card
-            key={s.id}
-            onClick={() => setSelected(s)}
-            className="flex cursor-pointer items-center justify-between"
-          >
-            <span>
-              {s.name}
-              <span className="ml-1 text-xs text-gray-500">
-                ({s.field})
-              </span>
-              <span className="ml-1 text-xs text-gray-500">
-                {clientsForSegment(s).length}
-              </span>
-            </span>
-            <Button
-              type="button"
-              className="text-red-600"
-              onClick={(e) => {
-                e.stopPropagation();
-                deleteSegment(s.id);
-              }}
-            >
-              Delete
-            </Button>
-          </Card>
-        ))}
-        {segments.length === 0 && <p>No segments</p>}
+        )}
       </div>
 
       {selected && (
@@ -293,33 +305,120 @@ export default function SegmentsPage() {
           role="dialog"
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur"
-          onClick={() => setShowModal(false)}
+          onClick={() => {
+            setShowModal(false);
+            setEditSeg(null);
+          }}
         >
           <form
             onSubmit={addSegment}
-            className="w-80 space-y-2 rounded bg-white p-4 shadow"
+            className="w-96 space-y-4 rounded-lg bg-white p-4 shadow"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-semibold">New Segment</h2>
+            <div className="flex items-center justify-between border-b pb-2">
+              <h2 className="font-semibold">
+                {editSeg ? "Edit Segment" : "New Segment"}
+              </h2>
+              <button type="button" onClick={() => setShowModal(false)} aria-label="Close">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Segment name"
             />
-            <select
-              className="w-full rounded border p-1"
-              value={field}
-              onChange={(e) => setField(e.target.value)}
-            >
-              <option value="phone">Has phone number</option>
-              <option value="email">Has email address</option>
-              <option value="company">Has company</option>
-              <option value="tag">Has tag</option>
-              <option value="notes">Has notes</option>
-              <option value="deal">Has deal</option>
-              <option value="appointment">Has appointment</option>
-            </select>
-            <div className="flex justify-end gap-2">
+            {/* Builder */}
+            {criteria.map((cr) => (
+              <div
+                key={cr.id}
+                className="mb-4 flex flex-col items-start gap-2 rounded-lg border border-gray-200 p-4 sm:flex-row sm:items-center"
+              >
+                <select
+                  className="rounded border p-1"
+                  value={cr.field}
+                  onChange={(e) =>
+                    setCriteria((c) =>
+                      c.map((cc) =>
+                        cc.id === cr.id ? { ...cc, field: e.target.value } : cc,
+                      ),
+                    )
+                  }
+                >
+                  <option value="name">Name</option>
+                  <option value="email">Email</option>
+                  <option value="phone">Phone</option>
+                  <option value="tag">Tag</option>
+                </select>
+                <select
+                  className="rounded border p-1"
+                  value={cr.op}
+                  onChange={(e) =>
+                    setCriteria((c) =>
+                      c.map((cc) =>
+                        cc.id === cr.id ? { ...cc, op: e.target.value as any } : cc,
+                      ),
+                    )
+                  }
+                >
+                  <option value="equals">equals</option>
+                  <option value="contains">contains</option>
+                  <option value="exists">exists</option>
+                </select>
+                {cr.op !== "exists" && (
+                  <Input
+                    value={cr.value || ""}
+                    onChange={(e) =>
+                      setCriteria((c) =>
+                        c.map((cc) =>
+                          cc.id === cr.id ? { ...cc, value: e.target.value } : cc,
+                        ),
+                      )
+                    }
+                    className="flex-1"
+                  />
+                )}
+                <Button
+                  type="button"
+                  onClick={() =>
+                    setCriteria((c) => c.filter((cc) => cc.id !== cr.id))
+                  }
+                  className="self-start sm:self-auto"
+                >
+                  Remove
+                </Button>
+              </div>
+            ))}
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-sm">Match</span>
+              <select
+                className="rounded border p-1"
+                value={logic}
+                onChange={(e) => setLogic(e.target.value as any)}
+              >
+                <option value="AND">All rules</option>
+                <option value="OR">Any rule</option>
+              </select>
+            </div>
+            <div className="flex justify-between">
+              <Button
+                type="button"
+                onClick={() =>
+                  setCriteria((c) => [
+                    ...c,
+                    { id: uuid(), field: "name", op: "contains", value: "" },
+                  ])
+                }
+              >
+                + Add rule
+              </Button>
+              {criteria.length > 0 && (
+                <span className="text-sm text-gray-600">
+                  {clientsByCriteria().length} clients match this segment
+                </span>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 border-t pt-2">
               <Button type="button" onClick={() => setShowModal(false)}>
                 Cancel
               </Button>
