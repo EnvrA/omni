@@ -24,7 +24,7 @@ export async function GET() {
       messages: {
         orderBy: { sentAt: "desc" },
         take: 1,
-        select: { sentAt: true, body: true },
+        select: { sentAt: true, body: true, direction: true },
       },
     },
   });
@@ -34,6 +34,7 @@ export async function GET() {
     name: c.name,
     lastMessageAt: c.messages[0]?.sentAt ?? null,
     lastMessageBody: c.messages[0]?.body ?? null,
+    lastMessageDirection: c.messages[0]?.direction ?? null,
   })).sort((a, b) =>
     (b.lastMessageAt?.getTime() ?? 0) - (a.lastMessageAt?.getTime() ?? 0)
   );
