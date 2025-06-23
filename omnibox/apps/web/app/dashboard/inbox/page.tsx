@@ -76,7 +76,7 @@ export default function InboxPage() {
 
 
   return (
-    <div className="flex h-screen flex-col gap-4 bg-gray-50 p-4 sm:flex-row overflow-hidden">
+    <div className="px-6 py-4 space-y-6 flex h-screen flex-col gap-4 bg-gray-50 sm:flex-row overflow-hidden">
       {/* CONTACT LIST */}
       <aside className="flex-shrink-0 overflow-y-auto sm:w-64 sm:border-r sm:border-gray-200 pr-4 sm:pr-0">
         <h2 className="px-2 pb-3 text-lg font-semibold">Contacts</h2>

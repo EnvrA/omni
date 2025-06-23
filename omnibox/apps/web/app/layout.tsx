@@ -26,8 +26,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <ClientToaster />
-        <TagsProvider>{children}</TagsProvider>
+        <div className="container mx-auto">
+          <ClientToaster />
+          <TagsProvider>{children}</TagsProvider>
+        </div>
       </body>
     </html>
   );
