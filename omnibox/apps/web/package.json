@@ -18,7 +18,7 @@
     "@prisma/client": "^6.9.0",
     "@repo/ui": "workspace:*",
     "@sendgrid/mail": "^8.1.5",
-    "lucide-react": "0.270.0",
+    "lucide-react": "0.523.0",
     "next": "^15.3.0",
     "next-auth": "^4.24.11",
     "react": "^19.1.0",
