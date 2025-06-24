@@ -156,7 +156,7 @@ export default function DashboardPage() {
                   </span>
                   {e.contactId && (
                     <Link href={`/dashboard/inbox?contact=${e.contactId}`}>
-                      <Button className="bg-blue-600 text-white">Open</Button>
+                      <Button className="bg-blue-600 text-white hover:bg-blue-700">Open</Button>
                     </Link>
                   )}
                 </li>
@@ -224,13 +224,13 @@ export default function DashboardPage() {
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2">
         <Link href="/dashboard/clients">
-          <Button className="bg-green-600 text-white">New Contact</Button>
+          <Button className="bg-green-600 text-white hover:bg-green-700">New Contact</Button>
         </Link>
         <Link href="/dashboard/deals">
-          <Button className="bg-blue-600 text-white">New Deal</Button>
+          <Button className="bg-blue-600 text-white hover:bg-blue-700">New Deal</Button>
         </Link>
         <Link href="/dashboard/inbox">
-          <Button className="bg-indigo-600 text-white">Send Message</Button>
+          <Button className="bg-indigo-600 text-white hover:bg-indigo-700">Send Message</Button>
         </Link>
       </div>
 
