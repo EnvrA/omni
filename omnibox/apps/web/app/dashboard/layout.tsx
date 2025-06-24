@@ -6,6 +6,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen">
       <aside className="w-48 border-r p-4 space-y-2">
         <nav className="flex flex-col gap-2">
+          <Link
+            href="/dashboard"
+            className="w-full rounded px-2 py-1 text-left hover:bg-gray-100"
+          >
+            Dashboard
+          </Link>
           <Link href="/dashboard/inbox" className="w-full rounded px-2 py-1 text-left hover:bg-gray-100">
             Inbox
           </Link>

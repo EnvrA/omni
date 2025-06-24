@@ -109,20 +109,26 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="text-center">
-          <p className="text-sm text-gray-500">Unread Messages</p>
-          <p className="text-2xl font-semibold" data-testid="unread-count">
-            {unreadCount}
-          </p>
-        </Card>
-        <Card className="text-center">
-          <p className="text-sm text-gray-500">Deals in Progress</p>
-          <p className="text-2xl font-semibold">{dealsInProgress}</p>
-        </Card>
-        <Card className="text-center">
-          <p className="text-sm text-gray-500">Upcoming Reminders</p>
-          <p className="text-2xl font-semibold">{remindersCount}</p>
-        </Card>
+        <Link href="/dashboard/inbox" className="block focus:outline-none">
+          <Card className="text-center hover:bg-gray-50">
+            <p className="text-sm text-gray-500">Unread Messages</p>
+            <p className="text-2xl font-semibold" data-testid="unread-count">
+              {unreadCount}
+            </p>
+          </Card>
+        </Link>
+        <Link href="/dashboard/deals" className="block focus:outline-none">
+          <Card className="text-center hover:bg-gray-50">
+            <p className="text-sm text-gray-500">Deals in Progress</p>
+            <p className="text-2xl font-semibold">{dealsInProgress}</p>
+          </Card>
+        </Link>
+        <Link href="/dashboard/calendar" className="block focus:outline-none">
+          <Card className="text-center hover:bg-gray-50">
+            <p className="text-sm text-gray-500">Upcoming Reminders</p>
+            <p className="text-2xl font-semibold">{remindersCount}</p>
+          </Card>
+        </Link>
       </div>
 
       {/* Today schedule */}
@@ -149,11 +155,8 @@ export default function DashboardPage() {
                     {contact?.name || "Unknown"}
                   </span>
                   {e.contactId && (
-                    <Link
-                      href={`/dashboard/inbox?contact=${e.contactId}`}
-                      className="text-blue-600 underline"
-                    >
-                      Open
+                    <Link href={`/dashboard/inbox?contact=${e.contactId}`}>
+                      <Button className="bg-blue-600 text-white">Open</Button>
                     </Link>
                   )}
                 </li>
@@ -197,14 +200,22 @@ export default function DashboardPage() {
             <p className="text-sm text-gray-500">No recent activity</p>
           ) : (
             <ul className="space-y-1 text-sm overflow-y-auto max-h-40">
-              {recent.map((a, i) => (
-                <li key={i} className="flex justify-between gap-2">
-                  <span>{a.action}</span>
-                  <span className="text-gray-500">
-                    {Math.round((Date.now() - a.time) / 60000)}m ago
-                  </span>
-                </li>
-              ))}
+              {recent.map((a, i) => {
+                const diff = Date.now() - a.time;
+                const minutes = Math.round(diff / 60000);
+                const timeAgo =
+                  minutes >= 1440
+                    ? `${Math.round(minutes / 1440)}d ago`
+                    : minutes >= 60
+                    ? `${Math.round(minutes / 60)}h ago`
+                    : `${minutes}m ago`;
+                return (
+                  <li key={i} className="flex justify-between gap-2">
+                    <span>{a.action}</span>
+                    <span className="text-gray-500">{timeAgo}</span>
+                  </li>
+                );
+              })}
             </ul>
           );
         })()}
