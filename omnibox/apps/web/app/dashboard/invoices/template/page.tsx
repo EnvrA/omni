@@ -76,8 +76,14 @@ export default function InvoiceTemplatePage() {
     });
     const j = await res.json();
     if (j.pdfBase64) {
-      const url = `data:application/pdf;base64,${j.pdfBase64}`;
+      const binary = atob(j.pdfBase64);
+      const len = binary.length;
+      const arr = new Uint8Array(len);
+      for (let i = 0; i < len; i++) arr[i] = binary.charCodeAt(i);
+      const blob = new Blob([arr], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
       window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
   }
 

@@ -1,9 +1,10 @@
 "use client";
 import useSWR from "swr";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Input, Button, Card } from "@/components/ui";
 import { toast } from "sonner";
+import { v4 as uuid } from "uuid";
 
 interface Invoice {
   id: string;
@@ -43,6 +44,15 @@ export default function InvoicesPage() {
     dueDate: "",
     pdfBase64: "",
   });
+  interface LineItem {
+    id: string;
+    service: string;
+    description: string;
+    rate: string;
+    quantity: string;
+  }
+  const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [autoAmount, setAutoAmount] = useState(true);
 
   function openNew() {
     setForm({
@@ -52,6 +62,8 @@ export default function InvoicesPage() {
       dueDate: "",
       pdfBase64: "",
     });
+    setLineItems([{ id: uuid(), service: "", description: "", rate: "", quantity: "" }]);
+    setAutoAmount(true);
     setEditId(null);
     setShowModal(true);
   }
@@ -64,8 +76,39 @@ export default function InvoicesPage() {
       dueDate: inv.dueDate.split("T")[0],
       pdfBase64: inv.pdfUrl || "",
     });
+    setLineItems([]);
+    setAutoAmount(false);
     setEditId(inv.id);
     setShowModal(true);
+  }
+
+  useEffect(() => {
+    if (!autoAmount) return;
+    const total = lineItems.reduce(
+      (sum, li) =>
+        sum + (parseFloat(li.rate) || 0) * (parseFloat(li.quantity) || 0),
+      0,
+    );
+    setForm((f) => ({ ...f, amount: total ? total.toFixed(2) : "" }));
+  }, [lineItems, autoAmount]);
+
+  function addLine() {
+    setLineItems((i) => [
+      ...i,
+      { id: uuid(), service: "", description: "", rate: "", quantity: "" },
+    ]);
+  }
+
+  function updateLine(id: string, field: keyof LineItem, value: string) {
+    setLineItems((items) =>
+      items.map((it) =>
+        it.id === id ? { ...it, [field]: value } : it,
+      ),
+    );
+  }
+
+  function removeLine(id: string) {
+    setLineItems((items) => items.filter((it) => it.id !== id));
   }
 
   async function saveInvoice(e: React.FormEvent) {
@@ -231,11 +274,70 @@ export default function InvoicesPage() {
                 setForm({ ...form, invoiceNumber: e.target.value })
               }
             />
+            {lineItems.map((li) => (
+              <div
+                key={li.id}
+                className="flex flex-wrap items-end gap-2"
+              >
+                <Input
+                  placeholder="Service"
+                  value={li.service}
+                  onChange={(e) =>
+                    updateLine(li.id, "service", e.target.value)
+                  }
+                  className="flex-1"
+                />
+                <Input
+                  placeholder="Description"
+                  value={li.description}
+                  onChange={(e) =>
+                    updateLine(li.id, "description", e.target.value)
+                  }
+                  className="flex-1"
+                />
+                <Input
+                  type="number"
+                  placeholder="Rate"
+                  value={li.rate}
+                  onChange={(e) => updateLine(li.id, "rate", e.target.value)}
+                  className="w-20"
+                />
+                <Input
+                  type="number"
+                  placeholder="Qty"
+                  value={li.quantity}
+                  onChange={(e) =>
+                    updateLine(li.id, "quantity", e.target.value)
+                  }
+                  className="w-16"
+                />
+                <Input
+                  disabled
+                  aria-label="Total"
+                  value={(
+                    (parseFloat(li.rate) || 0) *
+                    (parseFloat(li.quantity) || 0)
+                  ).toFixed(2)}
+                  className="w-20 bg-gray-100"
+                />
+                <Button
+                  type="button"
+                  onClick={() => removeLine(li.id)}
+                  className="self-start"
+                >
+                  Remove
+                </Button>
+              </div>
+            ))}
+            <Button type="button" onClick={addLine} className="mt-1">
+              + Add line
+            </Button>
             <Input
               type="number"
-              placeholder="Amount"
+              placeholder="Total Amount"
               value={form.amount}
               onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              readOnly={autoAmount}
             />
             <Input
               type="date"
