@@ -13,7 +13,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json();
-  const { action } = body as { action?: string };
+  const { action, contactId, amount, dueDate, pdfBase64 } = body as {
+    action?: string;
+    contactId?: string;
+    amount?: number;
+    dueDate?: string;
+    pdfBase64?: string;
+  };
   const invoice = await prisma.invoice.findFirst({
     where: { id: params.id, userId: user.id },
     include: { contact: true },
@@ -50,6 +56,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       where: { id: params.id },
       data: { status: 'SENT' },
     });
+    return NextResponse.json({ invoice: updated });
+  }
+
+  if (!action) {
+    const data: any = {};
+    if (contactId) data.contactId = contactId;
+    if (amount != null) data.amount = amount;
+    if (dueDate) data.dueDate = new Date(dueDate);
+    if (pdfBase64 !== undefined) {
+      data.pdfUrl = pdfBase64.startsWith('data:') ? pdfBase64 : `data:application/pdf;base64,${pdfBase64}`;
+    }
+    const updated = await prisma.invoice.update({ where: { id: params.id }, data });
     return NextResponse.json({ invoice: updated });
   }
 

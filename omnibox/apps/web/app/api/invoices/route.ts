@@ -24,10 +24,11 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json();
-  const { contactId, amount, dueDate } = body as {
+  const { contactId, amount, dueDate, pdfBase64 } = body as {
     contactId: string;
     amount: number;
     dueDate: string;
+    pdfBase64?: string;
   };
   const contact = await prisma.contact.findFirst({
     where: { id: contactId, userId: user.id },
@@ -35,16 +36,19 @@ export async function POST(req: NextRequest) {
   });
   if (!contact) return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
 
-  const template = await prisma.invoiceTemplate.findFirst({ where: { userId: user.id } });
-  const pdfBase64 = await generateInvoicePdf({
-    logoUrl: template?.logoUrl || undefined,
-    header: template?.header || undefined,
-    body: template?.body || undefined,
-    footer: template?.footer || undefined,
-    amount,
-    dueDate,
-    clientName: contact.name || 'Client',
-  });
+  let pdf = pdfBase64;
+  if (!pdf) {
+    const template = await prisma.invoiceTemplate.findFirst({ where: { userId: user.id } });
+    pdf = await generateInvoicePdf({
+      logoUrl: template?.logoUrl || undefined,
+      header: template?.header || undefined,
+      body: template?.body || undefined,
+      footer: template?.footer || undefined,
+      amount,
+      dueDate,
+      clientName: contact.name || 'Client',
+    });
+  }
 
   const invoice = await prisma.invoice.create({
     data: {
@@ -52,7 +56,7 @@ export async function POST(req: NextRequest) {
       contactId,
       amount,
       dueDate: new Date(dueDate),
-      pdfUrl: `data:application/pdf;base64,${pdfBase64}`,
+      pdfUrl: pdf ? (pdf.startsWith('data:') ? pdf : `data:application/pdf;base64,${pdf}`) : undefined,
     },
   });
 

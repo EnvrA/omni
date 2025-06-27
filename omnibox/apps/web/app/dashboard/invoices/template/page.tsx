@@ -24,6 +24,7 @@ export default function InvoiceTemplatePage() {
     emailSubject: "",
     emailBody: "",
   });
+  const [showEmailPreview, setShowEmailPreview] = useState(false);
 
   useEffect(() => {
     if (data?.template) {
@@ -52,12 +53,40 @@ export default function InvoiceTemplatePage() {
     }
   }
 
+  async function previewPdf() {
+    const res = await fetch("/api/invoice/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...form,
+        amount: 0,
+        dueDate: new Date().toISOString(),
+        clientName: "Client",
+      }),
+    });
+    const j = await res.json();
+    if (j.pdfBase64) {
+      const url = `data:application/pdf;base64,${j.pdfBase64}`;
+      window.open(url, "_blank");
+    }
+  }
+
   return (
     <div className="space-y-2">
+      {form.logoUrl && (
+        <img src={form.logoUrl} alt="logo" className="h-16 w-16 object-contain" />
+      )}
       <Input
-        placeholder="Logo URL"
-        value={form.logoUrl}
-        onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) =>
+            setForm((f) => ({ ...f, logoUrl: ev.target?.result as string }));
+          reader.readAsDataURL(file);
+        }}
       />
       <Input
         placeholder="Header"
@@ -85,7 +114,34 @@ export default function InvoiceTemplatePage() {
         value={form.emailBody}
         onChange={(e) => setForm({ ...form, emailBody: e.target.value })}
       />
-      <Button onClick={save}>Save Template</Button>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={save}>Save Template</Button>
+        <Button type="button" onClick={previewPdf}>Preview PDF</Button>
+        <Button type="button" onClick={() => setShowEmailPreview(true)}>
+          Preview Email
+        </Button>
+      </div>
+      {showEmailPreview && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setShowEmailPreview(false)}
+        >
+          <div
+            className="w-80 space-y-2 rounded bg-white p-4 shadow"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-semibold">{form.emailSubject || "(no subject)"}</h2>
+            <p className="whitespace-pre-wrap text-sm">{form.emailBody}</p>
+            <div className="flex justify-end">
+              <Button type="button" onClick={() => setShowEmailPreview(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
