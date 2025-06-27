@@ -71,10 +71,13 @@ export default function InvoicesPage() {
       <div className="flex justify-end">
         <Button onClick={() => setShowModal(true)}>New Invoice</Button>
       </div>
-      {data && data.invoices.length === 0 && (
+      {data && 'error' in data && (
+        <p className="text-center text-red-500">{(data as any).error}</p>
+      )}
+      {data && Array.isArray(data.invoices) && data.invoices.length === 0 && (
         <p className="text-center text-gray-500">No invoices.</p>
       )}
-      {data && data.invoices.length > 0 && (
+      {data && Array.isArray(data.invoices) && data.invoices.length > 0 && (
         <div className="space-y-2">
           {data.invoices.map((inv) => (
             <Card key={inv.id} className="flex justify-between p-2">
