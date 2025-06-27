@@ -157,6 +157,7 @@ model Invoice {
   id        String        @id @default(uuid())
   userId    String
   contactId String
+  invoiceNumber String?
   amount    Float
   dueDate   DateTime
   pdfUrl    String?

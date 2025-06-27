@@ -8,6 +8,7 @@ import { toast } from "sonner";
 interface Invoice {
   id: string;
   contactId: string;
+  invoiceNumber?: string | null;
   amount: number;
   dueDate: string;
   status: string;
@@ -34,15 +35,23 @@ export default function InvoicesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
   const [form, setForm] = useState({
     contactId: "",
+    invoiceNumber: "",
     amount: "",
     dueDate: "",
     pdfBase64: "",
   });
 
   function openNew() {
-    setForm({ contactId: "", amount: "", dueDate: "", pdfBase64: "" });
+    setForm({
+      contactId: "",
+      invoiceNumber: "",
+      amount: "",
+      dueDate: "",
+      pdfBase64: "",
+    });
     setEditId(null);
     setShowModal(true);
   }
@@ -50,6 +59,7 @@ export default function InvoicesPage() {
   function openEdit(inv: Invoice) {
     setForm({
       contactId: inv.contactId,
+      invoiceNumber: inv.invoiceNumber || "",
       amount: inv.amount.toString(),
       dueDate: inv.dueDate.split("T")[0],
       pdfBase64: inv.pdfUrl || "",
@@ -62,6 +72,7 @@ export default function InvoicesPage() {
     e.preventDefault();
     const payload = {
       contactId: form.contactId,
+      invoiceNumber: form.invoiceNumber || undefined,
       amount: parseFloat(form.amount),
       dueDate: form.dueDate,
       pdfBase64: form.pdfBase64 || undefined,
@@ -96,19 +107,26 @@ export default function InvoicesPage() {
   }
 
   const filteredInvoices = data?.invoices.filter((inv) => {
-    if (!search) return true;
     const q = search.toLowerCase();
-    const statusMatch = inv.status.toLowerCase().includes(q);
-    const actionMatch =
+    const searchMatch =
+      !search ||
+      inv.status.toLowerCase().includes(q) ||
       (q.includes("mark paid") && inv.status !== "PAID") ||
       (q.includes("send") && inv.status === "DRAFT");
-    return statusMatch || actionMatch;
+    const filterMatch =
+      filter === "all" ||
+      (filter === "draft" && inv.status === "DRAFT") ||
+      (filter === "sent" && inv.status === "SENT") ||
+      (filter === "paid" && inv.status === "PAID") ||
+      (filter === "markPaid" && inv.status !== "PAID") ||
+      (filter === "send" && inv.status === "DRAFT");
+    return searchMatch && filterMatch;
   });
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex-1 flex justify-center">
+        <div className="flex-1 flex justify-center gap-2">
           <Input
             aria-label="Search invoices"
             placeholder="Search"
@@ -116,10 +134,26 @@ export default function InvoicesPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="w-full max-w-xs"
           />
+          <select
+            aria-label="Filter invoices"
+            className="rounded border p-1"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          >
+            <option value="all">All</option>
+            <option value="draft">Draft</option>
+            <option value="sent">Sent</option>
+            <option value="paid">Paid</option>
+            <option value="markPaid">Mark Paid</option>
+            <option value="send">Send</option>
+          </select>
         </div>
         <div className="flex items-center gap-2">
           <Link href="/dashboard/invoices/template" className="underline">
             Edit Template
+          </Link>
+          <Link href="/dashboard/invoices/email-template" className="underline">
+            Email Template
           </Link>
           <Button onClick={openNew}>New Invoice</Button>
         </div>
@@ -136,6 +170,9 @@ export default function InvoicesPage() {
             <Card key={inv.id} className="flex justify-between p-2">
               <div>
                 <div className="font-semibold">{inv.contact.name || "Unnamed"}</div>
+                {inv.invoiceNumber && (
+                  <div className="text-sm text-gray-500">#{inv.invoiceNumber}</div>
+                )}
                 <div className="text-sm text-gray-600">
                   ${inv.amount} due {new Date(inv.dueDate).toLocaleDateString()}
                 </div>
@@ -187,6 +224,13 @@ export default function InvoicesPage() {
                 </option>
               ))}
             </select>
+            <Input
+              placeholder="Invoice Number"
+              value={form.invoiceNumber}
+              onChange={(e) =>
+                setForm({ ...form, invoiceNumber: e.target.value })
+              }
+            />
             <Input
               type="number"
               placeholder="Amount"
