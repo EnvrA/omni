@@ -31,16 +31,18 @@ enum Plan {
 }
 
 model User {
-  id             String          @id @default(uuid())
-  email          String          @unique
-  name           String?
-  emailVerified  DateTime? // verification timestamp
-  accounts       Account[]
-  sessions       Session[]
-  contacts       Contact[]
-  deals          Deal[]
-  stripeCustomer StripeCustomer?
-  quickReplies   QuickReply[]
+  id              String           @id @default(uuid())
+  email           String           @unique
+  name            String?
+  emailVerified   DateTime? // verification timestamp
+  accounts        Account[]
+  sessions        Session[]
+  contacts        Contact[]
+  deals           Deal[]
+  stripeCustomer  StripeCustomer?
+  quickReplies    QuickReply[]
+  invoices        Invoice[]
+  invoiceTemplate InvoiceTemplate?
 }
 
 model Contact {
@@ -58,6 +60,7 @@ model Contact {
   messages  Message[]
   User      User      @relation(fields: [userId], references: [id])
   Deal      Deal[]
+  Invoice   Invoice[]
 
   @@unique([phone, userId], name: "phone_userId")
 }
@@ -164,13 +167,13 @@ model Invoice {
 }
 
 model InvoiceTemplate {
-  id          String @id @default(uuid())
-  userId      String @unique
-  logoUrl     String?
-  header      String?
-  body        String?
-  footer      String?
+  id           String  @id @default(uuid())
+  userId       String  @unique
+  logoUrl      String?
+  header       String?
+  body         String?
+  footer       String?
   emailSubject String?
   emailBody    String?
-  user        User   @relation(fields: [userId], references: [id])
+  user         User    @relation(fields: [userId], references: [id])
 }
