@@ -1,7 +1,7 @@
 "use client";
 import useSWR from "swr";
 import { useState, useEffect } from "react";
-import { Input, Button } from "@/components/ui";
+import { Input, Button, Textarea } from "@/components/ui";
 import { toast } from "sonner";
 
 const fetcher = async (url: string) => {
@@ -74,10 +74,15 @@ export default function InvoiceTemplatePage() {
   return (
     <div className="space-y-2">
       {form.logoUrl && (
-        <img src={form.logoUrl} alt="logo" className="h-16 w-16 object-contain" />
+        <img
+          src={form.logoUrl}
+          alt="Company logo"
+          className="h-16 w-16 object-contain"
+        />
       )}
       <Input
         type="file"
+        aria-label="Company logo"
         accept="image/*"
         onChange={(e) => {
           const file = e.target.files?.[0];
@@ -108,8 +113,7 @@ export default function InvoiceTemplatePage() {
         value={form.emailSubject}
         onChange={(e) => setForm({ ...form, emailSubject: e.target.value })}
       />
-      <textarea
-        className="w-full rounded border p-1"
+      <Textarea
         placeholder="Email Body"
         value={form.emailBody}
         onChange={(e) => setForm({ ...form, emailBody: e.target.value })}

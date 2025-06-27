@@ -1,6 +1,7 @@
 "use client";
 import useSWR from "swr";
 import { useState } from "react";
+import Link from "next/link";
 import { Input, Button, Card } from "@/components/ui";
 import { toast } from "sonner";
 
@@ -32,6 +33,7 @@ export default function InvoicesPage() {
   );
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
   const [form, setForm] = useState({
     contactId: "",
     amount: "",
@@ -93,20 +95,44 @@ export default function InvoicesPage() {
     }
   }
 
+  const filteredInvoices = data?.invoices.filter((inv) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    const statusMatch = inv.status.toLowerCase().includes(q);
+    const actionMatch =
+      (q.includes("mark paid") && inv.status !== "PAID") ||
+      (q.includes("send") && inv.status === "DRAFT");
+    return statusMatch || actionMatch;
+  });
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={openNew}>New Invoice</Button>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex-1 flex justify-center">
+          <Input
+            aria-label="Search invoices"
+            placeholder="Search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full max-w-xs"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard/invoices/template" className="underline">
+            Edit Template
+          </Link>
+          <Button onClick={openNew}>New Invoice</Button>
+        </div>
       </div>
       {data && 'error' in data && (
         <p className="text-center text-red-500">{(data as any).error}</p>
       )}
-      {data && Array.isArray(data.invoices) && data.invoices.length === 0 && (
+      {data && Array.isArray(data.invoices) && filteredInvoices?.length === 0 && (
         <p className="text-center text-gray-500">No invoices.</p>
       )}
       {data && Array.isArray(data.invoices) && data.invoices.length > 0 && (
         <div className="space-y-2">
-          {data.invoices.map((inv) => (
+          {filteredInvoices?.map((inv) => (
             <Card key={inv.id} className="flex justify-between p-2">
               <div>
                 <div className="font-semibold">{inv.contact.name || "Unnamed"}</div>
