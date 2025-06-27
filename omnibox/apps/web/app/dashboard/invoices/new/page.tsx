@@ -196,35 +196,59 @@ export default function NewInvoicePage() {
     <form onSubmit={saveInvoice} className="space-y-6 p-4">
       <div className="space-y-2 rounded border p-3">
         <h2 className="font-semibold">Header</h2>
+        <label className="text-sm font-medium" htmlFor="invoice-title">
+          Title*
+        </label>
         <Input
+          id="invoice-title"
           aria-label="Title"
           value={form.title}
           onChange={(e) => setForm({ ...form, title: e.target.value })}
         />
+        <label className="text-sm font-medium" htmlFor="invoice-number">
+          Invoice Number*
+        </label>
         <Input
+          id="invoice-number"
           aria-label="Invoice Number"
           value={form.invoiceNumber}
           onChange={(e) => setForm({ ...form, invoiceNumber: e.target.value })}
         />
         <div className="flex flex-wrap gap-2">
-          <Input
-            type="date"
-            aria-label="Issue Date"
-            value={form.issueDate}
-            onChange={(e) => setForm({ ...form, issueDate: e.target.value })}
-          />
-          <Input
-            type="date"
-            aria-label="Due Date"
-            value={form.dueDate}
-            onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-          />
+          <div className="flex flex-col">
+            <label className="text-sm font-medium" htmlFor="issue-date">
+              Issue Date*
+            </label>
+            <Input
+              id="issue-date"
+              type="date"
+              aria-label="Issue Date"
+              value={form.issueDate}
+              onChange={(e) => setForm({ ...form, issueDate: e.target.value })}
+            />
+          </div>
+          <div className="flex flex-col">
+            <label className="text-sm font-medium" htmlFor="due-date">
+              Due Date*
+            </label>
+            <Input
+              id="due-date"
+              type="date"
+              aria-label="Due Date"
+              value={form.dueDate}
+              onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+            />
+          </div>
         </div>
       </div>
 
       <div className="space-y-2 rounded border p-3">
         <h2 className="font-semibold">Client</h2>
+        <label className="text-sm font-medium" htmlFor="client-field">
+          Client*
+        </label>
         <Input
+          id="client-field"
           list="client-list"
           placeholder="Search client"
           value={form.clientName}

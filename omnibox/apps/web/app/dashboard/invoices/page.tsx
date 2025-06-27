@@ -182,14 +182,26 @@ export default function InvoicesPage() {
             <option value="toSend">To Send</option>
           </select>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/dashboard/invoices/template" className="underline">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/dashboard/invoices/template"
+            className="rounded border bg-white px-3 py-1 shadow-sm"
+            role="button"
+          >
             Edit Template
           </Link>
-          <Link href="/dashboard/invoices/email-template" className="underline">
+          <Link
+            href="/dashboard/invoices/email-template"
+            className="rounded border bg-white px-3 py-1 shadow-sm"
+            role="button"
+          >
             Email Template
           </Link>
-          <Link href="/dashboard/invoices/new" className="underline">
+          <Link
+            href="/dashboard/invoices/new"
+            className="rounded border bg-white px-3 py-1 shadow-sm"
+            role="button"
+          >
             New Invoice
           </Link>
         </div>
