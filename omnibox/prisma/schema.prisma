@@ -181,5 +181,6 @@ model InvoiceTemplate {
   accentColor  String?
   emailSubject String?
   emailBody    String?
+  layout       Json?
   user         User    @relation(fields: [userId], references: [id])
 }

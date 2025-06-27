@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
     notes: body.notes,
     terms: body.terms,
     accentColor: body.accentColor,
+    layout: body.layout,
     amount: body.amount,
     dueDate: body.dueDate,
     clientName: body.clientName,

@@ -2,7 +2,22 @@
 import useSWR from "swr";
 import { useState, useEffect } from "react";
 import { Input, Button, Textarea } from "@/components/ui";
+import { DndContext, useDraggable } from "@dnd-kit/core";
 import { toast } from "sonner";
+
+const defaultLayout: Record<string, { x: number; y: number }> = {
+  logo: { x: 50, y: 760 },
+  header: { x: 50, y: 700 },
+  companyName: { x: 50, y: 680 },
+  companyAddress: { x: 50, y: 660 },
+  billTo: { x: 50, y: 620 },
+  amount: { x: 50, y: 600 },
+  dueDate: { x: 50, y: 580 },
+  body: { x: 50, y: 540 },
+  notes: { x: 50, y: 520 },
+  footer: { x: 50, y: 40 },
+  terms: { x: 50, y: 20 },
+};
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -28,6 +43,7 @@ export default function InvoiceTemplatePage() {
     accentColor: "",
     emailSubject: "",
     emailBody: "",
+    layout: defaultLayout,
   });
   const [showEmailPreview, setShowEmailPreview] = useState(false);
 
@@ -45,6 +61,7 @@ export default function InvoiceTemplatePage() {
         accentColor: data.template.accentColor || "",
         emailSubject: data.template.emailSubject || "",
         emailBody: data.template.emailBody || "",
+        layout: data.template.layout || defaultLayout,
       });
     }
   }, [data]);
@@ -85,6 +102,86 @@ export default function InvoiceTemplatePage() {
       window.open(url, "_blank");
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
+  }
+
+  function DraggableItem({ id, children }: { id: string; children: React.ReactNode }) {
+    const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
+    const pos = form.layout[id] || { x: 0, y: 0 };
+    const style = {
+      position: "absolute" as const,
+      left: pos.x + (transform?.x ?? 0),
+      top: pos.y + (transform?.y ?? 0),
+      cursor: "move",
+    };
+    return (
+      <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+        {children}
+      </div>
+    );
+  }
+
+  function TemplateEditor() {
+    return (
+      <DndContext
+        onDragEnd={(e) => {
+          const { id } = e.active;
+          const delta = e.delta;
+          setForm((f) => ({
+            ...f,
+            layout: {
+              ...f.layout,
+              [id]: {
+                x: (f.layout[id]?.x || 0) + delta.x,
+                y: (f.layout[id]?.y || 0) + delta.y,
+              },
+            },
+          }));
+        }}
+      >
+        <div
+          className="relative mx-auto mt-4 h-[420px] w-[300px] rounded border bg-white"
+          aria-label="Invoice layout editor"
+        >
+          <DraggableItem id="logo">
+            {form.logoUrl ? (
+              <img src={form.logoUrl} alt="Logo" className="h-12 w-24 object-contain" />
+            ) : (
+              <div className="h-12 w-24 bg-gray-200 text-xs flex items-center justify-center">Logo</div>
+            )}
+          </DraggableItem>
+          <DraggableItem id="header">
+            <div className="text-sm font-semibold">{form.header || "Header"}</div>
+          </DraggableItem>
+          <DraggableItem id="companyName">
+            <div className="text-sm">{form.companyName || "Company"}</div>
+          </DraggableItem>
+          <DraggableItem id="companyAddress">
+            <div className="text-xs">{form.companyAddress || "Address"}</div>
+          </DraggableItem>
+          <DraggableItem id="billTo">
+            <div className="text-sm">Bill To</div>
+          </DraggableItem>
+          <DraggableItem id="amount">
+            <div className="text-sm">Amount</div>
+          </DraggableItem>
+          <DraggableItem id="dueDate">
+            <div className="text-sm">Due Date</div>
+          </DraggableItem>
+          <DraggableItem id="body">
+            <div className="text-sm">{form.body || "Body"}</div>
+          </DraggableItem>
+          <DraggableItem id="notes">
+            <div className="text-xs">{form.notes || "Notes"}</div>
+          </DraggableItem>
+          <DraggableItem id="footer">
+            <div className="text-xs">{form.footer || "Footer"}</div>
+          </DraggableItem>
+          <DraggableItem id="terms">
+            <div className="text-[10px]">{form.terms || "Terms"}</div>
+          </DraggableItem>
+        </div>
+      </DndContext>
+    );
   }
 
   return (
@@ -159,6 +256,7 @@ export default function InvoiceTemplatePage() {
         value={form.emailBody}
         onChange={(e) => setForm({ ...form, emailBody: e.target.value })}
       />
+      <TemplateEditor />
       <div className="flex flex-wrap gap-2">
         <Button onClick={save}>Save Template</Button>
         <Button type="button" onClick={previewPdf}>Preview PDF</Button>

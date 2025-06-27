@@ -31,6 +31,7 @@ export async function PATCH(req: NextRequest) {
     accentColor: body.accentColor as string | undefined,
     emailSubject: body.emailSubject as string | undefined,
     emailBody: body.emailBody as string | undefined,
+    layout: body.layout as any,
   };
 
   const existing = await prisma.invoiceTemplate.findFirst({ where: { userId: user.id } });
