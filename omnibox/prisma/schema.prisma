@@ -143,3 +143,34 @@ model QuickReply {
   text   String
   user   User   @relation(fields: [userId], references: [id])
 }
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+}
+
+model Invoice {
+  id        String        @id @default(uuid())
+  userId    String
+  contactId String
+  amount    Float
+  dueDate   DateTime
+  pdfUrl    String?
+  status    InvoiceStatus @default(DRAFT)
+  createdAt DateTime      @default(now())
+  user      User          @relation(fields: [userId], references: [id])
+  contact   Contact       @relation(fields: [contactId], references: [id])
+}
+
+model InvoiceTemplate {
+  id          String @id @default(uuid())
+  userId      String @unique
+  logoUrl     String?
+  header      String?
+  body        String?
+  footer      String?
+  emailSubject String?
+  emailBody    String?
+  user        User   @relation(fields: [userId], references: [id])
+}
