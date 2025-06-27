@@ -10,6 +10,7 @@ import {
   Handshake,
   Calendar,
   Users,
+  FileText,
   MessageCircle,
   PieChart,
   Settings,
@@ -49,6 +50,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <NavLink href="/dashboard/deals" icon={Handshake}>Deals</NavLink>
           <NavLink href="/dashboard/calendar" icon={Calendar}>Calendar</NavLink>
           <NavLink href="/dashboard/clients" icon={Users}>Clients</NavLink>
+          <NavLink href="/dashboard/invoices" icon={FileText}>Invoicing</NavLink>
           <NavLink href="/dashboard/message-center" icon={MessageCircle}>
             Message Center
           </NavLink>
