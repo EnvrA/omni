@@ -10,6 +10,7 @@ export interface InvoiceData {
   notes?: string;
   terms?: string;
   accentColor?: string;
+  layout?: Record<string, { x: number; y: number }>;
   amount: number;
   dueDate: string;
   clientName: string;
@@ -21,7 +22,7 @@ export async function generateInvoicePdf(data: InvoiceData) {
   const { width } = page.getSize();
 
   const font = await doc.embedFont(StandardFonts.Helvetica);
-  let y = 780;
+  const layout = data.layout || {};
 
   if (data.logoUrl) {
     try {
@@ -39,59 +40,60 @@ export async function generateInvoicePdf(data: InvoiceData) {
       const logo = mime.includes("png")
         ? await doc.embedPng(logoBytes)
         : await doc.embedJpg(logoBytes);
-      page.drawImage(logo, { x: 50, y, width: 100, height: 50 });
+      const pos = layout.logo || { x: 50, y: 760 };
+      page.drawImage(logo, { x: pos.x, y: pos.y, width: 100, height: 50 });
     } catch {
       // ignore
     }
-    y -= 60;
   }
 
   if (data.header) {
+    const pos = layout.header || { x: 50, y: 700 };
     page.drawText(data.header, {
-      x: 50,
-      y,
+      x: pos.x,
+      y: pos.y,
       size: 14,
       font,
     });
-    y -= 20;
   }
 
   if (data.companyName) {
-    page.drawText(data.companyName, { x: 50, y, size: 12, font });
-    y -= 15;
+    const pos = layout.companyName || { x: 50, y: 680 };
+    page.drawText(data.companyName, { x: pos.x, y: pos.y, size: 12, font });
   }
 
   if (data.companyAddress) {
-    page.drawText(data.companyAddress, { x: 50, y, size: 10, font });
-    y -= 20;
+    const pos = layout.companyAddress || { x: 50, y: 660 };
+    page.drawText(data.companyAddress, { x: pos.x, y: pos.y, size: 10, font });
   }
 
-  page.drawText(`Bill To: ${data.clientName}`, { x: 50, y, size: 12, font });
-  y -= 20;
+  const billPos = layout.billTo || { x: 50, y: 620 };
+  page.drawText(`Bill To: ${data.clientName}`, { x: billPos.x, y: billPos.y, size: 12, font });
+  const amountPos = layout.amount || { x: 50, y: 600 };
   page.drawText(`Amount Due: $${data.amount.toFixed(2)}`, {
-    x: 50,
-    y,
+    x: amountPos.x,
+    y: amountPos.y,
     size: 12,
     font,
   });
-  y -= 20;
-  page.drawText(`Due Date: ${data.dueDate}`, { x: 50, y, size: 12, font });
-  y -= 40;
+  const duePos = layout.dueDate || { x: 50, y: 580 };
+  page.drawText(`Due Date: ${data.dueDate}`, { x: duePos.x, y: duePos.y, size: 12, font });
 
   if (data.body) {
-    page.drawText(data.body, { x: 50, y, size: 12, font, lineHeight: 14 });
-    y -= 40;
+    const pos = layout.body || { x: 50, y: 540 };
+    page.drawText(data.body, { x: pos.x, y: pos.y, size: 12, font, lineHeight: 14 });
   }
 
   if (data.notes) {
-    page.drawText(data.notes, { x: 50, y, size: 10, font, lineHeight: 12 });
-    y -= 30;
+    const pos = layout.notes || { x: 50, y: 520 };
+    page.drawText(data.notes, { x: pos.x, y: pos.y, size: 10, font, lineHeight: 12 });
   }
 
   if (data.footer) {
+    const pos = layout.footer || { x: 50, y: 40 };
     page.drawText(data.footer, {
-      x: 50,
-      y: 40,
+      x: pos.x,
+      y: pos.y,
       size: 10,
       font,
       color: rgb(0.5, 0.5, 0.5),
@@ -99,9 +101,10 @@ export async function generateInvoicePdf(data: InvoiceData) {
   }
 
   if (data.terms) {
+    const pos = layout.terms || { x: 50, y: 20 };
     page.drawText(data.terms, {
-      x: 50,
-      y: 20,
+      x: pos.x,
+      y: pos.y,
       size: 8,
       font,
       color: rgb(0.5, 0.5, 0.5),
