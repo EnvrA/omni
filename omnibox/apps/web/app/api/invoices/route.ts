@@ -24,11 +24,12 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json();
-  const { contactId, amount, dueDate, pdfBase64 } = body as {
+  const { contactId, amount, dueDate, pdfBase64, invoiceNumber } = body as {
     contactId: string;
     amount: number;
     dueDate: string;
     pdfBase64?: string;
+    invoiceNumber?: string;
   };
   const contact = await prisma.contact.findFirst({
     where: { id: contactId, userId: user.id },
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
     data: {
       userId: user.id,
       contactId,
+      invoiceNumber: invoiceNumber || undefined,
       amount,
       dueDate: new Date(dueDate),
       pdfUrl: pdf ? (pdf.startsWith('data:') ? pdf : `data:application/pdf;base64,${pdf}`) : undefined,

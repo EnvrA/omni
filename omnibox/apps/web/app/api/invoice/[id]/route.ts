@@ -13,12 +13,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json();
-  const { action, contactId, amount, dueDate, pdfBase64 } = body as {
+  const { action, contactId, amount, dueDate, pdfBase64, invoiceNumber } = body as {
     action?: string;
     contactId?: string;
     amount?: number;
     dueDate?: string;
     pdfBase64?: string;
+    invoiceNumber?: string;
   };
   const invoice = await prisma.invoice.findFirst({
     where: { id: params.id, userId: user.id },
@@ -38,11 +39,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (!invoice.contact.email) {
       return NextResponse.json({ error: 'Contact has no email' }, { status: 400 });
     }
+    const template = await prisma.invoiceTemplate.findFirst({ where: { userId: user.id } });
+    let subject = template?.emailSubject || 'Invoice';
+    let text = template?.emailBody || 'Please see attached invoice.';
+    const number = invoice.invoiceNumber || invoice.id;
+    subject = subject.replace(/{{invoiceNumber}}/g, number);
+    text = text.replace(/{{invoiceNumber}}/g, number);
     await sgMail.send({
       to: invoice.contact.email,
       from: EMAIL_FROM,
-      subject: 'Invoice',
-      text: 'Please see attached invoice.',
+      subject,
+      text,
       attachments: [
         {
           content: invoice.pdfUrl?.split(',')[1] || '',
@@ -62,6 +69,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!action) {
     const data: any = {};
     if (contactId) data.contactId = contactId;
+    if (invoiceNumber !== undefined) data.invoiceNumber = invoiceNumber;
     if (amount != null) data.amount = amount;
     if (dueDate) data.dueDate = new Date(dueDate);
     if (pdfBase64 !== undefined) {
