@@ -5,6 +5,11 @@ export interface InvoiceData {
   header?: string;
   body?: string;
   footer?: string;
+  companyName?: string;
+  companyAddress?: string;
+  notes?: string;
+  terms?: string;
+  accentColor?: string;
   amount: number;
   dueDate: string;
   clientName: string;
@@ -39,6 +44,16 @@ export async function generateInvoicePdf(data: InvoiceData) {
     y -= 20;
   }
 
+  if (data.companyName) {
+    page.drawText(data.companyName, { x: 50, y, size: 12, font });
+    y -= 15;
+  }
+
+  if (data.companyAddress) {
+    page.drawText(data.companyAddress, { x: 50, y, size: 10, font });
+    y -= 20;
+  }
+
   page.drawText(`Bill To: ${data.clientName}`, { x: 50, y, size: 12, font });
   y -= 20;
   page.drawText(`Amount Due: $${data.amount.toFixed(2)}`, {
@@ -56,11 +71,26 @@ export async function generateInvoicePdf(data: InvoiceData) {
     y -= 40;
   }
 
+  if (data.notes) {
+    page.drawText(data.notes, { x: 50, y, size: 10, font, lineHeight: 12 });
+    y -= 30;
+  }
+
   if (data.footer) {
     page.drawText(data.footer, {
       x: 50,
       y: 40,
       size: 10,
+      font,
+      color: rgb(0.5, 0.5, 0.5),
+    });
+  }
+
+  if (data.terms) {
+    page.drawText(data.terms, {
+      x: 50,
+      y: 20,
+      size: 8,
       font,
       color: rgb(0.5, 0.5, 0.5),
     });

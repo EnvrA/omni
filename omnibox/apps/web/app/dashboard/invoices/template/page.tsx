@@ -21,6 +21,11 @@ export default function InvoiceTemplatePage() {
     header: "",
     body: "",
     footer: "",
+    companyName: "",
+    companyAddress: "",
+    notes: "",
+    terms: "",
+    accentColor: "",
     emailSubject: "",
     emailBody: "",
   });
@@ -33,6 +38,11 @@ export default function InvoiceTemplatePage() {
         header: data.template.header || "",
         body: data.template.body || "",
         footer: data.template.footer || "",
+        companyName: data.template.companyName || "",
+        companyAddress: data.template.companyAddress || "",
+        notes: data.template.notes || "",
+        terms: data.template.terms || "",
+        accentColor: data.template.accentColor || "",
         emailSubject: data.template.emailSubject || "",
         emailBody: data.template.emailBody || "",
       });
@@ -99,6 +109,16 @@ export default function InvoiceTemplatePage() {
         onChange={(e) => setForm({ ...form, header: e.target.value })}
       />
       <Input
+        placeholder="Company Name"
+        value={form.companyName}
+        onChange={(e) => setForm({ ...form, companyName: e.target.value })}
+      />
+      <Input
+        placeholder="Company Address"
+        value={form.companyAddress}
+        onChange={(e) => setForm({ ...form, companyAddress: e.target.value })}
+      />
+      <Input
         placeholder="Body"
         value={form.body}
         onChange={(e) => setForm({ ...form, body: e.target.value })}
@@ -107,6 +127,21 @@ export default function InvoiceTemplatePage() {
         placeholder="Footer"
         value={form.footer}
         onChange={(e) => setForm({ ...form, footer: e.target.value })}
+      />
+      <Textarea
+        placeholder="Notes"
+        value={form.notes}
+        onChange={(e) => setForm({ ...form, notes: e.target.value })}
+      />
+      <Textarea
+        placeholder="Terms"
+        value={form.terms}
+        onChange={(e) => setForm({ ...form, terms: e.target.value })}
+      />
+      <Input
+        placeholder="Accent Color (hex)"
+        value={form.accentColor}
+        onChange={(e) => setForm({ ...form, accentColor: e.target.value })}
       />
       <Input
         placeholder="Email Subject"
@@ -124,6 +159,9 @@ export default function InvoiceTemplatePage() {
         <Button type="button" onClick={() => setShowEmailPreview(true)}>
           Preview Email
         </Button>
+      </div>
+      <div className="text-sm text-gray-600">
+        Available shortcodes: {"{{invoiceNumber}}, {{clientName}}, {{amount}}, {{dueDate}}"}
       </div>
       {showEmailPreview && (
         <div

@@ -112,14 +112,14 @@ export default function InvoicesPage() {
       !search ||
       inv.status.toLowerCase().includes(q) ||
       (q.includes("mark paid") && inv.status !== "PAID") ||
-      (q.includes("send") && inv.status === "DRAFT");
+      ((q.includes("to send") || q.includes("send")) && inv.status === "DRAFT");
     const filterMatch =
       filter === "all" ||
       (filter === "draft" && inv.status === "DRAFT") ||
       (filter === "sent" && inv.status === "SENT") ||
       (filter === "paid" && inv.status === "PAID") ||
       (filter === "markPaid" && inv.status !== "PAID") ||
-      (filter === "send" && inv.status === "DRAFT");
+      (filter === "toSend" && inv.status === "DRAFT");
     return searchMatch && filterMatch;
   });
 
@@ -145,7 +145,7 @@ export default function InvoicesPage() {
             <option value="sent">Sent</option>
             <option value="paid">Paid</option>
             <option value="markPaid">Mark Paid</option>
-            <option value="send">Send</option>
+            <option value="toSend">To Send</option>
           </select>
         </div>
         <div className="flex items-center gap-2">
