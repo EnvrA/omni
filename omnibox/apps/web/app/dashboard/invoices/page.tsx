@@ -28,7 +28,10 @@ const fetcher = async (url: string) => {
 };
 
 export default function InvoicesPage() {
-  const { data, mutate } = useSWR<{ invoices: Invoice[] }>("/api/invoices", fetcher);
+  const { data, mutate } = useSWR<{ invoices: Invoice[] }>(
+    "/api/invoices",
+    fetcher,
+  );
   const { data: clients } = useSWR<{ clients: { id: string; name: string }[] }>(
     "/api/clients",
     fetcher,
@@ -54,19 +57,7 @@ export default function InvoicesPage() {
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [autoAmount, setAutoAmount] = useState(true);
 
-  function openNew() {
-    setForm({
-      contactId: "",
-      invoiceNumber: "",
-      amount: "",
-      dueDate: "",
-      pdfBase64: "",
-    });
-    setLineItems([{ id: uuid(), service: "", description: "", rate: "", quantity: "" }]);
-    setAutoAmount(true);
-    setEditId(null);
-    setShowModal(true);
-  }
+  // New invoices are created on a dedicated page
 
   function openEdit(inv: Invoice) {
     setForm({
@@ -101,9 +92,7 @@ export default function InvoicesPage() {
 
   function updateLine(id: string, field: keyof LineItem, value: string) {
     setLineItems((items) =>
-      items.map((it) =>
-        it.id === id ? { ...it, [field]: value } : it,
-      ),
+      items.map((it) => (it.id === id ? { ...it, [field]: value } : it)),
     );
   }
 
@@ -128,7 +117,9 @@ export default function InvoicesPage() {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      toast.error(editId ? "Failed to update invoice" : "Failed to create invoice");
+      toast.error(
+        editId ? "Failed to update invoice" : "Failed to create invoice",
+      );
     } else {
       toast.success(editId ? "Invoice updated" : "Invoice created");
       mutate();
@@ -198,23 +189,31 @@ export default function InvoicesPage() {
           <Link href="/dashboard/invoices/email-template" className="underline">
             Email Template
           </Link>
-          <Button onClick={openNew}>New Invoice</Button>
+          <Link href="/dashboard/invoices/new" className="underline">
+            New Invoice
+          </Link>
         </div>
       </div>
-      {data && 'error' in data && (
+      {data && "error" in data && (
         <p className="text-center text-red-500">{(data as any).error}</p>
       )}
-      {data && Array.isArray(data.invoices) && filteredInvoices?.length === 0 && (
-        <p className="text-center text-gray-500">No invoices.</p>
-      )}
+      {data &&
+        Array.isArray(data.invoices) &&
+        filteredInvoices?.length === 0 && (
+          <p className="text-center text-gray-500">No invoices.</p>
+        )}
       {data && Array.isArray(data.invoices) && data.invoices.length > 0 && (
         <div className="space-y-2">
           {filteredInvoices?.map((inv) => (
             <Card key={inv.id} className="flex justify-between p-2">
               <div>
-                <div className="font-semibold">{inv.contact.name || "Unnamed"}</div>
+                <div className="font-semibold">
+                  {inv.contact.name || "Unnamed"}
+                </div>
                 {inv.invoiceNumber && (
-                  <div className="text-sm text-gray-500">#{inv.invoiceNumber}</div>
+                  <div className="text-sm text-gray-500">
+                    #{inv.invoiceNumber}
+                  </div>
                 )}
                 <div className="text-sm text-gray-600">
                   ${inv.amount} due {new Date(inv.dueDate).toLocaleDateString()}
@@ -224,13 +223,20 @@ export default function InvoicesPage() {
               <div className="flex items-center gap-2">
                 <Button onClick={() => openEdit(inv)}>Edit</Button>
                 {inv.status !== "PAID" && (
-                  <Button onClick={() => action(inv.id, "markPaid")}>Mark Paid</Button>
+                  <Button onClick={() => action(inv.id, "markPaid")}>
+                    Mark Paid
+                  </Button>
                 )}
                 {inv.status === "DRAFT" && (
                   <Button onClick={() => action(inv.id, "send")}>Send</Button>
                 )}
                 {inv.pdfUrl && (
-                  <a href={inv.pdfUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline">
+                  <a
+                    href={inv.pdfUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 underline"
+                  >
                     PDF
                   </a>
                 )}
@@ -254,7 +260,9 @@ export default function InvoicesPage() {
             className="w-80 space-y-2 rounded bg-white p-4 shadow"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-semibold">{editId ? "Edit Invoice" : "New Invoice"}</h2>
+            <h2 className="font-semibold">
+              {editId ? "Edit Invoice" : "New Invoice"}
+            </h2>
             <select
               className="w-full rounded border p-1"
               value={form.contactId}
@@ -275,16 +283,11 @@ export default function InvoicesPage() {
               }
             />
             {lineItems.map((li) => (
-              <div
-                key={li.id}
-                className="flex flex-wrap items-end gap-2"
-              >
+              <div key={li.id} className="flex flex-wrap items-end gap-2">
                 <Input
                   placeholder="Service"
                   value={li.service}
-                  onChange={(e) =>
-                    updateLine(li.id, "service", e.target.value)
-                  }
+                  onChange={(e) => updateLine(li.id, "service", e.target.value)}
                   className="flex-1"
                 />
                 <Input
@@ -315,8 +318,7 @@ export default function InvoicesPage() {
                   disabled
                   aria-label="Total"
                   value={(
-                    (parseFloat(li.rate) || 0) *
-                    (parseFloat(li.quantity) || 0)
+                    (parseFloat(li.rate) || 0) * (parseFloat(li.quantity) || 0)
                   ).toFixed(2)}
                   className="w-20 bg-gray-100"
                 />
@@ -352,7 +354,10 @@ export default function InvoicesPage() {
                 if (!file) return;
                 const reader = new FileReader();
                 reader.onload = (ev) =>
-                  setForm((f) => ({ ...f, pdfBase64: ev.target?.result as string }));
+                  setForm((f) => ({
+                    ...f,
+                    pdfBase64: ev.target?.result as string,
+                  }));
                 reader.readAsDataURL(file);
               }}
             />
