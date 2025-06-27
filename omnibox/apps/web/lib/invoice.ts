@@ -25,8 +25,20 @@ export async function generateInvoicePdf(data: InvoiceData) {
 
   if (data.logoUrl) {
     try {
-      const logoBytes = await fetch(data.logoUrl).then((r) => r.arrayBuffer());
-      const logo = await doc.embedPng(logoBytes);
+      let logoBytes: ArrayBuffer | Uint8Array;
+      let mime = "";
+      if (data.logoUrl.startsWith("data:")) {
+        const [meta, base] = data.logoUrl.split(",", 2);
+        mime = meta.split(":")[1].split(";")[0];
+        logoBytes = Buffer.from(base, "base64");
+      } else {
+        const res = await fetch(data.logoUrl);
+        mime = res.headers.get("content-type") || "";
+        logoBytes = await res.arrayBuffer();
+      }
+      const logo = mime.includes("png")
+        ? await doc.embedPng(logoBytes)
+        : await doc.embedJpg(logoBytes);
       page.drawImage(logo, { x: 50, y, width: 100, height: 50 });
     } catch {
       // ignore
