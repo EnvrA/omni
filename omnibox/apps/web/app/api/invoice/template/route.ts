@@ -24,6 +24,11 @@ export async function PATCH(req: NextRequest) {
     header: body.header as string | undefined,
     body: body.body as string | undefined,
     footer: body.footer as string | undefined,
+    companyName: body.companyName as string | undefined,
+    companyAddress: body.companyAddress as string | undefined,
+    notes: body.notes as string | undefined,
+    terms: body.terms as string | undefined,
+    accentColor: body.accentColor as string | undefined,
     emailSubject: body.emailSubject as string | undefined,
     emailBody: body.emailBody as string | undefined,
   };

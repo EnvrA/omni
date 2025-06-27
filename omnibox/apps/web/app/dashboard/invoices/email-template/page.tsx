@@ -60,6 +60,9 @@ export default function InvoiceEmailTemplatePage() {
           Preview Email
         </Button>
       </div>
+      <div className="text-sm text-gray-600">
+        Available shortcodes: {"{{invoiceNumber}}, {{clientName}}, {{amount}}, {{dueDate}}"}
+      </div>
       {showPreview && (
         <div
           role="dialog"
