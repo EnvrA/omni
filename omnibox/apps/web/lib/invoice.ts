@@ -1,116 +1,144 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, StandardFonts } from 'pdf-lib';
+
+export interface LineItem {
+  item: string;
+  quantity: string;
+  rate: string;
+  tax: string;
+}
 
 export interface InvoiceData {
   logoUrl?: string;
-  header?: string;
-  body?: string;
-  footer?: string;
-  companyName?: string;
   companyAddress?: string;
+  clientAddress?: string;
+  invoiceNumber?: string;
+  invoiceDate?: string;
+  dueDate?: string;
   notes?: string;
   terms?: string;
+  footer?: string;
+  items?: LineItem[];
+  columns?: { tax: boolean };
+
+  header?: string;
+  body?: string;
+  companyName?: string;
   accentColor?: string;
   layout?: Record<string, { x: number; y: number }>;
-  amount: number;
-  dueDate: string;
-  clientName: string;
+  amount?: number;
+  clientName?: string;
 }
 
 export async function generateInvoicePdf(data: InvoiceData) {
   const doc = await PDFDocument.create();
-  const page = doc.addPage([595, 842]); // A4
-  const { width } = page.getSize();
-
+  const page = doc.addPage([595, 842]);
   const font = await doc.embedFont(StandardFonts.Helvetica);
-  const layout = data.layout || {};
+  let y = 780;
 
   if (data.logoUrl) {
     try {
-      let logoBytes: ArrayBuffer | Uint8Array;
-      let mime = "";
-      if (data.logoUrl.startsWith("data:")) {
-        const [meta, base] = data.logoUrl.split(",", 2);
-        mime = meta.split(":")[1].split(";")[0];
-        logoBytes = Buffer.from(base, "base64");
+      let bytes: ArrayBuffer | Uint8Array;
+      let mime = '';
+      if (data.logoUrl.startsWith('data:')) {
+        const [meta, base] = data.logoUrl.split(',', 2);
+        mime = meta.split(':')[1].split(';')[0];
+        bytes = Buffer.from(base, 'base64');
       } else {
         const res = await fetch(data.logoUrl);
-        mime = res.headers.get("content-type") || "";
-        logoBytes = await res.arrayBuffer();
+        mime = res.headers.get('content-type') || '';
+        bytes = await res.arrayBuffer();
       }
-      const logo = mime.includes("png")
-        ? await doc.embedPng(logoBytes)
-        : await doc.embedJpg(logoBytes);
-      const pos = layout.logo || { x: 50, y: 760 };
-      page.drawImage(logo, { x: pos.x, y: pos.y, width: 100, height: 50 });
+      const img = mime.includes('png')
+        ? await doc.embedPng(bytes)
+        : await doc.embedJpg(bytes);
+      page.drawImage(img, { x: 50, y: y - 40, width: 100, height: 40 });
     } catch {
-      // ignore
+      // ignore image errors
     }
   }
-
-  if (data.header) {
-    const pos = layout.header || { x: 50, y: 700 };
-    page.drawText(data.header, {
-      x: pos.x,
-      y: pos.y,
-      size: 14,
-      font,
-    });
-  }
-
-  if (data.companyName) {
-    const pos = layout.companyName || { x: 50, y: 680 };
-    page.drawText(data.companyName, { x: pos.x, y: pos.y, size: 12, font });
-  }
+  y -= 60;
 
   if (data.companyAddress) {
-    const pos = layout.companyAddress || { x: 50, y: 660 };
-    page.drawText(data.companyAddress, { x: pos.x, y: pos.y, size: 10, font });
+    page.drawText(data.companyAddress, { x: 50, y, size: 10, font });
+  }
+  y -= 20;
+
+  if (data.clientAddress) {
+    page.drawText('Bill To:', { x: 50, y, size: 12, font });
+    page.drawText(data.clientAddress, { x: 110, y, size: 10, font });
+  }
+  y -= 20;
+
+  if (data.invoiceNumber) {
+    page.drawText(`Invoice #: ${data.invoiceNumber}`, { x: 50, y, size: 10, font });
+  }
+  if (data.invoiceDate) {
+    page.drawText(`Invoice Date: ${data.invoiceDate}`, { x: 200, y, size: 10, font });
+  }
+  if (data.dueDate) {
+    page.drawText(`Due Date: ${data.dueDate}`, { x: 380, y, size: 10, font });
+  }
+  y -= 30;
+
+  const showTax = data.columns?.tax !== false;
+  const headerY = y;
+  page.drawText('Item', { x: 50, y: headerY, size: 10, font });
+  page.drawText('Qty', { x: 250, y: headerY, size: 10, font });
+  page.drawText('Rate', { x: 290, y: headerY, size: 10, font });
+  if (showTax) page.drawText('Tax', { x: 340, y: headerY, size: 10, font });
+  const subX = showTax ? 390 : 340;
+  page.drawText('Subtotal', { x: subX, y: headerY, size: 10, font });
+  y -= 15;
+
+  const items = data.items || [];
+  for (const it of items) {
+    const qty = parseFloat(it.quantity) || 0;
+    const rate = parseFloat(it.rate) || 0;
+    const tax = parseFloat(it.tax) || 0;
+    const sub = qty * rate;
+    page.drawText(it.item, { x: 50, y, size: 10, font });
+    page.drawText(it.quantity, { x: 250, y, size: 10, font });
+    page.drawText(it.rate, { x: 290, y, size: 10, font });
+    if (showTax) page.drawText(it.tax, { x: 340, y, size: 10, font });
+    page.drawText(sub.toFixed(2), { x: subX, y, size: 10, font });
+    y -= 15;
   }
 
-  const billPos = layout.billTo || { x: 50, y: 620 };
-  page.drawText(`Bill To: ${data.clientName}`, { x: billPos.x, y: billPos.y, size: 12, font });
-  const amountPos = layout.amount || { x: 50, y: 600 };
-  page.drawText(`Amount Due: $${data.amount.toFixed(2)}`, {
-    x: amountPos.x,
-    y: amountPos.y,
-    size: 12,
-    font,
-  });
-  const duePos = layout.dueDate || { x: 50, y: 580 };
-  page.drawText(`Due Date: ${data.dueDate}`, { x: duePos.x, y: duePos.y, size: 12, font });
+  const subtotal = items.reduce(
+    (sum, it) => sum + (parseFloat(it.rate) || 0) * (parseFloat(it.quantity) || 0),
+    0,
+  );
+  const taxTotal = items.reduce(
+    (sum, it) =>
+      sum +
+      (parseFloat(it.rate) || 0) * (parseFloat(it.quantity) || 0) * ((parseFloat(it.tax) || 0) / 100),
+    0,
+  );
+  const total = subtotal + taxTotal;
 
-  if (data.body) {
-    const pos = layout.body || { x: 50, y: 540 };
-    page.drawText(data.body, { x: pos.x, y: pos.y, size: 12, font, lineHeight: 14 });
+  y -= 10;
+  page.drawText(`Subtotal: $${subtotal.toFixed(2)}`, { x: subX, y, size: 10, font });
+  y -= 12;
+  if (showTax) {
+    page.drawText(`Tax: $${taxTotal.toFixed(2)}`, { x: subX, y, size: 10, font });
+    y -= 12;
   }
+  page.drawText(`Total: $${total.toFixed(2)}`, { x: subX, y, size: 12, font });
+  y -= 30;
 
   if (data.notes) {
-    const pos = layout.notes || { x: 50, y: 520 };
-    page.drawText(data.notes, { x: pos.x, y: pos.y, size: 10, font, lineHeight: 12 });
+    page.drawText(data.notes, { x: 50, y, size: 10, font });
+    y -= 20;
   }
-
-  if (data.footer) {
-    const pos = layout.footer || { x: 50, y: 40 };
-    page.drawText(data.footer, {
-      x: pos.x,
-      y: pos.y,
-      size: 10,
-      font,
-      color: rgb(0.5, 0.5, 0.5),
-    });
-  }
-
   if (data.terms) {
-    const pos = layout.terms || { x: 50, y: 20 };
-    page.drawText(data.terms, {
-      x: pos.x,
-      y: pos.y,
-      size: 8,
-      font,
-      color: rgb(0.5, 0.5, 0.5),
-    });
+    page.drawText(data.terms, { x: 50, y, size: 8, font });
+    y -= 15;
+  }
+  if (data.footer) {
+    page.drawText(data.footer, { x: 50, y: 40, size: 10, font });
   }
 
   const bytes = await doc.save();
   return Buffer.from(bytes).toString('base64');
 }
+

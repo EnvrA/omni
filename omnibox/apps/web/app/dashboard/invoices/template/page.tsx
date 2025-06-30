@@ -1,56 +1,16 @@
 "use client";
 import useSWR from "swr";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Input, Button, Textarea } from "@/components/ui";
-import {
-  DndContext,
-  useDraggable,
-  useDroppable,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  restrictToParentElement,
-  snapCenterToCursor,
-} from "@dnd-kit/modifiers";
 import { toast } from "sonner";
+import { v4 as uuid } from "uuid";
 
-const defaultLayout: Record<string, { zone: string; x: number; y: number }> = {
-  logo: { zone: "header", x: 0, y: 0 },
-  header: { zone: "header", x: 50, y: 0 },
-  companyName: { zone: "header", x: 0, y: 20 },
-  companyAddress: { zone: "header", x: 0, y: 40 },
-  billTo: { zone: "billing", x: 0, y: 0 },
-  amount: { zone: "totals", x: 0, y: 0 },
-  dueDate: { zone: "totals", x: 120, y: 0 },
-  body: { zone: "items", x: 0, y: 40 },
-  notes: { zone: "notes", x: 0, y: 0 },
-  footer: { zone: "footer", x: 0, y: 0 },
-  terms: { zone: "footer", x: 0, y: 20 },
-};
-
-function toNewLayout(data: any) {
-  const layout: Record<string, { zone: string; x: number; y: number }> = {};
-  if (!data) return defaultLayout;
-  for (const key of Object.keys(defaultLayout)) {
-    const item = (data as any)[key];
-    if (item) {
-      let zone = item.zone || (defaultLayout as any)[key].zone;
-      if (zone === "body") zone = "billing";
-      if (zone === "terms") zone = "footer";
-      layout[key] = {
-        zone,
-        x: item.x ?? (defaultLayout as any)[key].x,
-        y: item.y ?? (defaultLayout as any)[key].y,
-      };
-    } else {
-      layout[key] = (defaultLayout as any)[key];
-    }
-  }
-  return layout;
+interface LineItem {
+  id: string;
+  item: string;
+  quantity: string;
+  rate: string;
+  tax: string;
 }
 
 const fetcher = async (url: string) => {
@@ -68,46 +28,109 @@ export default function InvoiceTemplatePage() {
     "/api/invoice/template",
     fetcher,
   );
+
   const [form, setForm] = useState({
     logoUrl: "",
-    header: "",
-    body: "",
-    footer: "",
-    companyName: "",
-    companyAddress: "",
+    sellerAddress: "",
+    buyerAddress: "",
+    invoiceNumber: "",
+    invoiceDate: "",
+    dueDate: "",
     notes: "",
     terms: "",
-    accentColor: "",
-    emailSubject: "",
-    emailBody: "",
-    layout: defaultLayout,
+    footer: "",
+    items: [] as LineItem[],
+    showTax: true,
   });
-  const [showEmailPreview, setShowEmailPreview] = useState(false);
 
   useEffect(() => {
     if (data?.template) {
+      const t = data.template;
       setForm({
-        logoUrl: data.template.logoUrl || "",
-        header: data.template.header || "",
-        body: data.template.body || "",
-        footer: data.template.footer || "",
-        companyName: data.template.companyName || "",
-        companyAddress: data.template.companyAddress || "",
-        notes: data.template.notes || "",
-        terms: data.template.terms || "",
-        accentColor: data.template.accentColor || "",
-        emailSubject: data.template.emailSubject || "",
-        emailBody: data.template.emailBody || "",
-        layout: toNewLayout(data.template.layout),
+        logoUrl: t.logoUrl || "",
+        sellerAddress: t.companyAddress || "",
+        buyerAddress: t.layout?.buyerAddress || "",
+        invoiceNumber: t.layout?.invoiceNumber || "",
+        invoiceDate: t.layout?.invoiceDate || "",
+        dueDate: t.layout?.dueDate || "",
+        notes: t.notes || "",
+        terms: t.terms || "",
+        footer: t.footer || "",
+        items:
+          t.layout?.items?.map((it: any) => ({
+            id: it.id || uuid(),
+            item: it.item || "",
+            quantity: it.quantity || "1",
+            rate: it.rate || "",
+            tax: it.tax || "",
+          })) || [
+            { id: uuid(), item: "", quantity: "1", rate: "", tax: "" },
+          ],
+        showTax: t.layout?.columns?.tax !== false,
       });
+    } else if (!form.items.length) {
+      setForm((f) => ({
+        ...f,
+        items: [{ id: uuid(), item: "", quantity: "1", rate: "", tax: "" }],
+      }));
     }
   }, [data]);
 
+  function updateItem(id: string, field: keyof LineItem, value: string) {
+    setForm((f) => ({
+      ...f,
+      items: f.items.map((it) =>
+        it.id === id ? { ...it, [field]: value } : it,
+      ),
+    }));
+  }
+  function addItem() {
+    setForm((f) => ({
+      ...f,
+      items: [
+        ...f.items,
+        { id: uuid(), item: "", quantity: "1", rate: "", tax: "" },
+      ],
+    }));
+  }
+  function removeItem(id: string) {
+    setForm((f) => ({ ...f, items: f.items.filter((it) => it.id !== id) }));
+  }
+
+  const subtotal = form.items.reduce(
+    (sum, it) => sum + (parseFloat(it.rate) || 0) * (parseFloat(it.quantity) || 0),
+    0,
+  );
+  const taxTotal = form.items.reduce(
+    (sum, it) =>
+      sum +
+      (parseFloat(it.rate) || 0) *
+        (parseFloat(it.quantity) || 0) *
+        ((parseFloat(it.tax) || 0) / 100),
+    0,
+  );
+  const total = subtotal + taxTotal;
+
   async function save() {
+    const payload = {
+      logoUrl: form.logoUrl,
+      companyAddress: form.sellerAddress,
+      notes: form.notes,
+      terms: form.terms,
+      footer: form.footer,
+      layout: {
+        buyerAddress: form.buyerAddress,
+        invoiceNumber: form.invoiceNumber,
+        invoiceDate: form.invoiceDate,
+        dueDate: form.dueDate,
+        items: form.items,
+        columns: { tax: form.showTax },
+      },
+    };
     const res = await fetch("/api/invoice/template", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       toast.error("Failed to save template");
@@ -122,10 +145,17 @@ export default function InvoiceTemplatePage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...form,
-        amount: 0,
-        dueDate: new Date().toISOString(),
-        clientName: "Client",
+        logoUrl: form.logoUrl,
+        companyAddress: form.sellerAddress,
+        clientAddress: form.buyerAddress,
+        invoiceNumber: form.invoiceNumber,
+        invoiceDate: form.invoiceDate,
+        dueDate: form.dueDate,
+        notes: form.notes,
+        terms: form.terms,
+        footer: form.footer,
+        items: form.items,
+        columns: { tax: form.showTax },
       }),
     });
     const j = await res.json();
@@ -141,280 +171,255 @@ export default function InvoiceTemplatePage() {
     }
   }
 
-  function DraggableItem({
-    id,
-    children,
-  }: {
-    id: string;
-    children: React.ReactNode;
-  }) {
-    const { attributes, listeners, setNodeRef, transform } = useDraggable({
-      id,
-    });
-    const pos = form.layout[id] || { x: 0, y: 0 };
-    const style = {
-      position: "absolute" as const,
-      left: pos.x + (transform?.x ?? 0),
-      top: pos.y + (transform?.y ?? 0),
-      cursor: "move",
-      touchAction: "none" as const,
-    };
+  function Preview() {
     return (
-      <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-        {children}
+      <div className="mx-auto w-full max-w-lg space-y-2 rounded border bg-white p-4">
+        <div className="flex justify-between">
+          <div>
+            {form.logoUrl && (
+              <img src={form.logoUrl} alt="Logo" className="h-16 object-contain" />
+            )}
+            <div className="whitespace-pre-wrap text-sm">
+              {form.sellerAddress}
+            </div>
+          </div>
+        </div>
+        <div className="pt-2 text-sm">
+          <div className="font-semibold">Bill To</div>
+          <div className="whitespace-pre-wrap">{form.buyerAddress}</div>
+        </div>
+        <div className="flex flex-wrap gap-4 pt-2 text-sm">
+          <div>Invoice #: {form.invoiceNumber}</div>
+          <div>Invoice Date: {form.invoiceDate}</div>
+          <div>Due Date: {form.dueDate}</div>
+        </div>
+        <table className="mt-2 w-full text-sm">
+          <thead>
+            <tr className="border-b text-left">
+              <th className="py-1">Item</th>
+              <th className="py-1">Qty</th>
+              <th className="py-1">Rate</th>
+              {form.showTax && <th className="py-1">Tax %</th>}
+              <th className="py-1 text-right">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {form.items.map((it) => {
+              const sub =
+                (parseFloat(it.rate) || 0) * (parseFloat(it.quantity) || 0);
+              return (
+                <tr key={it.id} className="border-b align-top">
+                  <td className="py-1">{it.item}</td>
+                  <td className="py-1 text-right">{it.quantity}</td>
+                  <td className="py-1 text-right">{it.rate}</td>
+                  {form.showTax && <td className="py-1 text-right">{it.tax}</td>}
+                  <td className="py-1 text-right">{sub.toFixed(2)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <div className="flex justify-end pt-2 text-sm">
+          <div className="w-40 space-y-1">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>{subtotal.toFixed(2)}</span>
+            </div>
+            {form.showTax && (
+              <div className="flex justify-between">
+                <span>Tax</span>
+                <span>{taxTotal.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-semibold">
+              <span>Total</span>
+              <span>{total.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+        {form.notes && (
+          <div className="whitespace-pre-wrap pt-2 text-sm">{form.notes}</div>
+        )}
+        {form.terms && (
+          <div className="whitespace-pre-wrap pt-2 text-xs text-gray-500">
+            {form.terms}
+          </div>
+        )}
+        {form.footer && (
+          <div className="pt-4 text-center text-xs text-gray-500">
+            {form.footer}
+          </div>
+        )}
       </div>
-    );
-  }
-
-  function TemplateEditor() {
-    const sensors = useSensors(useSensor(MouseSensor), useSensor(TouchSensor));
-    const [overZone, setOverZone] = useState<string | null>(null);
-    const [dragging, setDragging] = useState(false);
-
-    const zones = [
-      "header",
-      "billing",
-      "items",
-      "totals",
-      "notes",
-      "footer",
-    ] as const;
-    const refs: Record<
-      string,
-      React.RefObject<HTMLDivElement>
-    > = Object.fromEntries(zones.map((z) => [z, useRef<HTMLDivElement>(null)]));
-
-    const handleDragEnd = (e: DragEndEvent) => {
-      setDragging(false);
-      setOverZone(null);
-      const { active, over } = e;
-      if (!over) return;
-      const zone = over.id as string;
-      const zoneRef = refs[zone];
-      if (!zoneRef?.current) return;
-      const zoneRect = zoneRef.current.getBoundingClientRect();
-      const activeRect = e.active.rect.current.translated;
-      const grid = 10;
-      const x = Math.round((activeRect.left - zoneRect.left) / grid) * grid;
-      const y = Math.round((activeRect.top - zoneRect.top) / grid) * grid;
-      setForm((f) => ({
-        ...f,
-        layout: {
-          ...f.layout,
-          [active.id]: { zone, x, y },
-        },
-      }));
-    };
-
-    function Zone({ id, children }: { id: string; children: React.ReactNode }) {
-      const { isOver, setNodeRef } = useDroppable({ id });
-      const highlight = dragging && (isOver || overZone === id);
-      return (
-        <div
-          ref={(el) => {
-            setNodeRef(el);
-            refs[id].current = el;
-          }}
-          id={id}
-          className={`relative border border-dashed ${highlight ? "bg-blue-50" : ""}`}
-          style={{ minHeight: 60 }}
-          aria-label={`${id} drop zone`}
-        >
-          {children}
-        </div>
-      );
-    }
-
-    function Items({ zone }: { zone: string }) {
-      return (
-        <>
-          {Object.keys(form.layout)
-            .filter((key) => form.layout[key].zone === zone)
-            .map((key) => (
-              <DraggableItem key={key} id={key}>
-                {renderItem(key)}
-              </DraggableItem>
-            ))}
-        </>
-      );
-    }
-
-    function renderItem(id: string) {
-      switch (id) {
-        case "logo":
-          return form.logoUrl ? (
-            <img
-              src={form.logoUrl}
-              alt="Logo"
-              className="h-12 w-24 object-contain"
-            />
-          ) : (
-            <div className="flex h-12 w-24 items-center justify-center bg-gray-200 text-xs">
-              Logo
-            </div>
-          );
-        case "header":
-          return (
-            <div className="text-sm font-semibold">
-              {form.header || "Header"}
-            </div>
-          );
-        case "companyName":
-          return <div className="text-sm">{form.companyName || "Company"}</div>;
-        case "companyAddress":
-          return (
-            <div className="text-xs">{form.companyAddress || "Address"}</div>
-          );
-        case "billTo":
-          return <div className="text-sm">Bill To</div>;
-        case "amount":
-          return <div className="text-sm">Amount</div>;
-        case "dueDate":
-          return <div className="text-sm">Due Date</div>;
-        case "body":
-          return <div className="text-sm">{form.body || "Body"}</div>;
-        case "notes":
-          return <div className="text-xs">{form.notes || "Notes"}</div>;
-        case "footer":
-          return <div className="text-xs">{form.footer || "Footer"}</div>;
-        case "terms":
-          return <div className="text-[10px]">{form.terms || "Terms"}</div>;
-        default:
-          return id;
-      }
-    }
-
-    return (
-      <DndContext
-        sensors={sensors}
-        modifiers={[restrictToParentElement, snapCenterToCursor]}
-        onDragStart={() => setDragging(true)}
-        onDragOver={(e) => setOverZone(e.over?.id as string)}
-        onDragEnd={handleDragEnd}
-      >
-        <div
-          className="mx-auto mt-4 space-y-1 rounded border bg-white p-1"
-          aria-label="Invoice layout editor"
-        >
-          {zones.map((z) => (
-            <Zone key={z} id={z}>
-              <Items zone={z} />
-            </Zone>
-          ))}
-        </div>
-      </DndContext>
     );
   }
 
   return (
-    <div className="space-y-2">
-      {form.logoUrl && (
-        <img
-          src={form.logoUrl}
-          alt="Company logo"
-          className="h-16 w-16 object-contain"
+    <div className="space-y-4 md:flex md:gap-4">
+      <div className="flex-1 space-y-2">
+        {form.logoUrl && (
+          <img
+            src={form.logoUrl}
+            alt="Company logo"
+            className="h-16 w-16 object-contain"
+          />
+        )}
+        <Input
+          type="file"
+          aria-label="Company logo"
+          accept="image/*"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) =>
+              setForm((f) => ({ ...f, logoUrl: ev.target?.result as string }));
+            reader.readAsDataURL(file);
+          }}
         />
-      )}
-      <Input
-        type="file"
-        aria-label="Company logo"
-        accept="image/*"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = (ev) =>
-            setForm((f) => ({ ...f, logoUrl: ev.target?.result as string }));
-          reader.readAsDataURL(file);
-        }}
-      />
-      <Input
-        placeholder="Header"
-        value={form.header}
-        onChange={(e) => setForm({ ...form, header: e.target.value })}
-      />
-      <Input
-        placeholder="Company Name"
-        value={form.companyName}
-        onChange={(e) => setForm({ ...form, companyName: e.target.value })}
-      />
-      <Input
-        placeholder="Company Address"
-        value={form.companyAddress}
-        onChange={(e) => setForm({ ...form, companyAddress: e.target.value })}
-      />
-      <Input
-        placeholder="Body"
-        value={form.body}
-        onChange={(e) => setForm({ ...form, body: e.target.value })}
-      />
-      <Input
-        placeholder="Footer"
-        value={form.footer}
-        onChange={(e) => setForm({ ...form, footer: e.target.value })}
-      />
-      <Textarea
-        placeholder="Notes"
-        value={form.notes}
-        onChange={(e) => setForm({ ...form, notes: e.target.value })}
-      />
-      <Textarea
-        placeholder="Terms"
-        value={form.terms}
-        onChange={(e) => setForm({ ...form, terms: e.target.value })}
-      />
-      <Input
-        placeholder="Accent Color (hex)"
-        value={form.accentColor}
-        onChange={(e) => setForm({ ...form, accentColor: e.target.value })}
-      />
-      <Input
-        placeholder="Email Subject"
-        value={form.emailSubject}
-        onChange={(e) => setForm({ ...form, emailSubject: e.target.value })}
-      />
-      <Textarea
-        placeholder="Email Body"
-        value={form.emailBody}
-        onChange={(e) => setForm({ ...form, emailBody: e.target.value })}
-      />
-      <TemplateEditor />
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={save}>Save Template</Button>
-        <Button type="button" onClick={previewPdf}>
-          Preview PDF
-        </Button>
-        <Button type="button" onClick={() => setShowEmailPreview(true)}>
-          Preview Email
-        </Button>
-      </div>
-      <div className="text-sm text-gray-600">
-        Available shortcodes:{" "}
-        {"{{invoiceNumber}}, {{clientName}}, {{amount}}, {{dueDate}}"}
-      </div>
-      {showEmailPreview && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={() => setShowEmailPreview(false)}
-        >
-          <div
-            className="w-80 space-y-2 rounded bg-white p-4 shadow"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-semibold">
-              {form.emailSubject || "(no subject)"}
-            </h2>
-            <p className="whitespace-pre-wrap text-sm">{form.emailBody}</p>
-            <div className="flex justify-end">
-              <Button type="button" onClick={() => setShowEmailPreview(false)}>
-                Close
-              </Button>
-            </div>
-          </div>
+        <Textarea
+          placeholder="Seller Address"
+          value={form.sellerAddress}
+          onChange={(e) =>
+            setForm((f) => ({ ...f, sellerAddress: e.target.value }))
+          }
+        />
+        <Textarea
+          placeholder="Buyer Address"
+          value={form.buyerAddress}
+          onChange={(e) =>
+            setForm((f) => ({ ...f, buyerAddress: e.target.value }))
+          }
+        />
+        <Input
+          placeholder="Invoice Number"
+          value={form.invoiceNumber}
+          onChange={(e) =>
+            setForm((f) => ({ ...f, invoiceNumber: e.target.value }))
+          }
+        />
+        <Input
+          type="date"
+          placeholder="Invoice Date"
+          value={form.invoiceDate}
+          onChange={(e) =>
+            setForm((f) => ({ ...f, invoiceDate: e.target.value }))
+          }
+        />
+        <Input
+          type="date"
+          placeholder="Due Date"
+          value={form.dueDate}
+          onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
+        />
+        <div className="space-y-2 pt-2">
+          <div className="font-semibold">Line Items</div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr>
+                <th className="text-left">Item</th>
+                <th>Qty</th>
+                <th>Rate</th>
+                {form.showTax && <th>Tax %</th>}
+                <th className="text-right">Subtotal</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {form.items.map((it) => {
+                const sub =
+                  (parseFloat(it.rate) || 0) * (parseFloat(it.quantity) || 0);
+                return (
+                  <tr key={it.id} className="align-top">
+                    <td>
+                      <Input
+                        value={it.item}
+                        onChange={(e) =>
+                          updateItem(it.id, "item", e.target.value)
+                        }
+                        className="w-full"
+                      />
+                    </td>
+                    <td>
+                      <Input
+                        value={it.quantity}
+                        onChange={(e) =>
+                          updateItem(it.id, "quantity", e.target.value)
+                        }
+                        className="w-16"
+                      />
+                    </td>
+                    <td>
+                      <Input
+                        value={it.rate}
+                        onChange={(e) =>
+                          updateItem(it.id, "rate", e.target.value)
+                        }
+                        className="w-20"
+                      />
+                    </td>
+                    {form.showTax && (
+                      <td>
+                        <Input
+                          value={it.tax}
+                          onChange={(e) =>
+                            updateItem(it.id, "tax", e.target.value)
+                          }
+                          className="w-16"
+                        />
+                      </td>
+                    )}
+                    <td className="p-1 text-right">{sub.toFixed(2)}</td>
+                    <td>
+                      <Button type="button" onClick={() => removeItem(it.id)}>
+                        Remove
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <Button type="button" onClick={addItem} className="mt-1">
+            + Add Row
+          </Button>
+          <label className="flex items-center gap-2 pt-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.showTax}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, showTax: e.target.checked }))
+              }
+            />
+            Show Tax Column
+          </label>
         </div>
-      )}
+        <Textarea
+          placeholder="Notes"
+          value={form.notes}
+          onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+        />
+        <Textarea
+          placeholder="Terms"
+          value={form.terms}
+          onChange={(e) => setForm((f) => ({ ...f, terms: e.target.value }))}
+        />
+        <Textarea
+          placeholder="Footer"
+          value={form.footer}
+          onChange={(e) => setForm((f) => ({ ...f, footer: e.target.value }))}
+        />
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={save}>Save Template</Button>
+          <Button type="button" onClick={previewPdf}>
+            Preview PDF
+          </Button>
+        </div>
+      </div>
+      <div className="flex-1 pt-2">
+        <Preview />
+      </div>
     </div>
   );
 }
+
