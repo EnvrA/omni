@@ -1,10 +1,9 @@
 "use client";
 import useSWR from "swr";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Input, Button, Card } from "@/components/ui";
 import { toast } from "sonner";
-import { v4 as uuid } from "uuid";
 
 interface Invoice {
   id: string;
@@ -36,96 +35,10 @@ export default function InvoicesPage() {
     "/api/clients",
     fetcher,
   );
-  const [showModal, setShowModal] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
-  const [form, setForm] = useState({
-    contactId: "",
-    invoiceNumber: "",
-    amount: "",
-    dueDate: "",
-    pdfBase64: "",
-  });
-  interface LineItem {
-    id: string;
-    service: string;
-    description: string;
-    rate: string;
-    quantity: string;
-  }
-  const [lineItems, setLineItems] = useState<LineItem[]>([]);
-  const [autoAmount, setAutoAmount] = useState(true);
 
   // New invoices are created on a dedicated page
-
-  function openEdit(inv: Invoice) {
-    setForm({
-      contactId: inv.contactId,
-      invoiceNumber: inv.invoiceNumber || "",
-      amount: inv.amount.toString(),
-      dueDate: inv.dueDate.split("T")[0],
-      pdfBase64: inv.pdfUrl || "",
-    });
-    setLineItems([]);
-    setAutoAmount(false);
-    setEditId(inv.id);
-    setShowModal(true);
-  }
-
-  useEffect(() => {
-    if (!autoAmount) return;
-    const total = lineItems.reduce(
-      (sum, li) =>
-        sum + (parseFloat(li.rate) || 0) * (parseFloat(li.quantity) || 0),
-      0,
-    );
-    setForm((f) => ({ ...f, amount: total ? total.toFixed(2) : "" }));
-  }, [lineItems, autoAmount]);
-
-  function addLine() {
-    setLineItems((i) => [
-      ...i,
-      { id: uuid(), service: "", description: "", rate: "", quantity: "" },
-    ]);
-  }
-
-  function updateLine(id: string, field: keyof LineItem, value: string) {
-    setLineItems((items) =>
-      items.map((it) => (it.id === id ? { ...it, [field]: value } : it)),
-    );
-  }
-
-  function removeLine(id: string) {
-    setLineItems((items) => items.filter((it) => it.id !== id));
-  }
-
-  async function saveInvoice(e: React.FormEvent) {
-    e.preventDefault();
-    const payload = {
-      contactId: form.contactId,
-      invoiceNumber: form.invoiceNumber || undefined,
-      amount: parseFloat(form.amount),
-      dueDate: form.dueDate,
-      pdfBase64: form.pdfBase64 || undefined,
-    };
-    const url = editId ? `/api/invoice/${editId}` : "/api/invoices";
-    const method = editId ? "PATCH" : "POST";
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      toast.error(
-        editId ? "Failed to update invoice" : "Failed to create invoice",
-      );
-    } else {
-      toast.success(editId ? "Invoice updated" : "Invoice created");
-      mutate();
-      setShowModal(false);
-    }
-  }
 
   async function action(id: string, act: string) {
     const res = await fetch(`/api/invoice/${id}`, {
@@ -233,7 +146,10 @@ export default function InvoicesPage() {
                 <div className="text-sm">Status: {inv.status}</div>
               </div>
               <div className="flex items-center gap-2">
-                <Button onClick={() => openEdit(inv)}>Edit</Button>
+                <Link href={`/dashboard/invoices/new?id=${inv.id}`}
+                  className="inline-block">
+                  <Button type="button">Edit</Button>
+                </Link>
                 {inv.status !== "PAID" && (
                   <Button onClick={() => action(inv.id, "markPaid")}>
                     Mark Paid
@@ -255,147 +171,6 @@ export default function InvoicesPage() {
               </div>
             </Card>
           ))}
-        </div>
-      )}
-      {showModal && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={() => {
-            setShowModal(false);
-            setEditId(null);
-          }}
-        >
-          <form
-            onSubmit={saveInvoice}
-            className="w-80 space-y-2 rounded bg-white p-4 shadow"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-semibold">
-              {editId ? "Edit Invoice" : "New Invoice"}
-            </h2>
-            <select
-              className="w-full rounded border p-1"
-              value={form.contactId}
-              onChange={(e) => setForm({ ...form, contactId: e.target.value })}
-            >
-              <option value="">Select client</option>
-              {clients?.clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <Input
-              placeholder="Invoice Number"
-              value={form.invoiceNumber}
-              onChange={(e) =>
-                setForm({ ...form, invoiceNumber: e.target.value })
-              }
-            />
-            {lineItems.map((li) => (
-              <div key={li.id} className="flex flex-wrap items-end gap-2">
-                <Input
-                  placeholder="Service"
-                  value={li.service}
-                  onChange={(e) => updateLine(li.id, "service", e.target.value)}
-                  className="flex-1"
-                />
-                <Input
-                  placeholder="Description"
-                  value={li.description}
-                  onChange={(e) =>
-                    updateLine(li.id, "description", e.target.value)
-                  }
-                  className="flex-1"
-                />
-                <Input
-                  type="number"
-                  placeholder="Rate"
-                  value={li.rate}
-                  onChange={(e) => updateLine(li.id, "rate", e.target.value)}
-                  className="w-20"
-                />
-                <Input
-                  type="number"
-                  placeholder="Qty"
-                  value={li.quantity}
-                  onChange={(e) =>
-                    updateLine(li.id, "quantity", e.target.value)
-                  }
-                  className="w-16"
-                />
-                <Input
-                  disabled
-                  aria-label="Total"
-                  value={(
-                    (parseFloat(li.rate) || 0) * (parseFloat(li.quantity) || 0)
-                  ).toFixed(2)}
-                  className="w-20 bg-gray-100"
-                />
-                <Button
-                  type="button"
-                  onClick={() => removeLine(li.id)}
-                  className="self-start"
-                >
-                  Remove
-                </Button>
-              </div>
-            ))}
-            <Button type="button" onClick={addLine} className="mt-1">
-              + Add line
-            </Button>
-            <Input
-              type="number"
-              placeholder="Total Amount"
-              value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              readOnly={autoAmount}
-            />
-            <Input
-              type="date"
-              value={form.dueDate}
-              onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-            />
-            <Input
-              type="file"
-              accept="application/pdf"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (ev) =>
-                  setForm((f) => ({
-                    ...f,
-                    pdfBase64: ev.target?.result as string,
-                  }));
-                reader.readAsDataURL(file);
-              }}
-            />
-            {form.pdfBase64 && (
-              <a
-                href={form.pdfBase64}
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm text-blue-600 underline"
-              >
-                View PDF
-              </a>
-            )}
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                onClick={() => {
-                  setShowModal(false);
-                  setEditId(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button type="submit">Save</Button>
-            </div>
-          </form>
         </div>
       )}
     </div>

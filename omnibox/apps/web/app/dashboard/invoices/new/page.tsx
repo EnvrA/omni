@@ -1,7 +1,7 @@
 "use client";
 import useSWR from "swr";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input, Button, Textarea } from "@/components/ui";
 import { toast } from "sonner";
 import { v4 as uuid } from "uuid";
@@ -27,6 +27,8 @@ const fetcher = async (url: string) => {
 
 export default function NewInvoicePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const invoiceId = searchParams.get("id");
   const { data: template } = useSWR<{ template: any }>(
     "/api/invoice/template",
     fetcher,
@@ -34,6 +36,10 @@ export default function NewInvoicePage() {
   const { data: clients } = useSWR<{
     clients: { id: string; name: string; company?: string }[];
   }>("/api/clients", fetcher);
+  const { data: existing } = useSWR<{ invoice: any }>(
+    invoiceId ? `/api/invoice/${invoiceId}` : null,
+    fetcher,
+  );
 
   const [form, setForm] = useState({
     clientName: "",
@@ -56,7 +62,15 @@ export default function NewInvoicePage() {
       setForm((f) => ({
         ...f,
         logoUrl: t.logoUrl || "",
-        sellerAddress: t.companyAddress || "",
+        sellerAddress: [
+          t.companyName,
+          t.companyAddress,
+          [t.zipCode, t.city].filter(Boolean).join(" "),
+          t.contactEmail,
+          t.phone,
+        ]
+          .filter(Boolean)
+          .join("\n"),
         buyerAddress:
           typeof t.layout?.buyerAddress === "string"
             ? t.layout.buyerAddress
@@ -111,6 +125,20 @@ export default function NewInvoicePage() {
       }));
     }
   }, [template]);
+
+  useEffect(() => {
+    if (existing?.invoice) {
+      const inv = existing.invoice;
+      const name = clients?.clients.find((c) => c.id === inv.contactId)?.name;
+      setForm((f) => ({
+        ...f,
+        clientId: inv.contactId,
+        clientName: name || f.clientName,
+        invoiceNumber: inv.invoiceNumber || f.invoiceNumber,
+        dueDate: inv.dueDate.split("T")[0],
+      }));
+    }
+  }, [existing, clients]);
 
   const idMap = clients?.clients.reduce((acc, c) => {
     acc[c.name] = c.id;
@@ -169,8 +197,10 @@ export default function NewInvoicePage() {
 
   async function saveInvoice(e: React.FormEvent) {
     e.preventDefault();
-    const res = await fetch("/api/invoices", {
-      method: "POST",
+    const url = invoiceId ? `/api/invoice/${invoiceId}` : "/api/invoices";
+    const method = invoiceId ? "PATCH" : "POST";
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contactId: form.clientId,
@@ -185,10 +215,10 @@ export default function NewInvoicePage() {
       }),
     });
     if (!res.ok) {
-      toast.error("Failed to create invoice");
+      toast.error(invoiceId ? "Failed to update invoice" : "Failed to create invoice");
       return;
     }
-    toast.success("Invoice created");
+    toast.success(invoiceId ? "Invoice updated" : "Invoice created");
     router.push("/dashboard/invoices");
   }
 
