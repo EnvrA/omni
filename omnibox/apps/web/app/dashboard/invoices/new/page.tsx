@@ -112,20 +112,16 @@ export default function NewInvoicePage() {
     }
   }, [template]);
 
-  const idMap = clients?.clients.reduce(
-    (acc, c) => {
-      acc[c.name] = c.id;
-      return acc;
-    },
-    {} as Record<string, string>,
-  );
-  const companyMap = clients?.clients.reduce(
-    (acc, c) => {
-      acc[c.name] = c.company || "";
-      return acc;
-    },
-    {} as Record<string, string>,
-  );
+  const idMap = clients?.clients.reduce((acc, c) => {
+    acc[c.name] = c.id;
+    return acc;
+  }, {} as Record<string, string>);
+
+  const infoMap = clients?.clients.reduce((acc, c) => {
+    const parts = [c.name, c.company, c.email, c.phone].filter(Boolean);
+    acc[c.name] = parts.join("\n");
+    return acc;
+  }, {} as Record<string, string>);
 
   function updateItem(id: string, field: keyof LineItem, value: string) {
     setForm((f) => ({
@@ -169,6 +165,7 @@ export default function NewInvoicePage() {
     0,
   );
   const total = subtotal + taxTotal;
+  const smallColWidth = 40 / (form.showTax ? 4 : 3);
 
   async function saveInvoice(e: React.FormEvent) {
     e.preventDefault();
@@ -178,6 +175,7 @@ export default function NewInvoicePage() {
       body: JSON.stringify({
         contactId: form.clientId,
         invoiceNumber: form.invoiceNumber || undefined,
+        amount: total,
         invoiceDate: form.invoiceDate,
         dueDate: form.dueDate,
         items: form.items,
@@ -220,7 +218,15 @@ export default function NewInvoicePage() {
           <div>Invoice Date: {form.invoiceDate}</div>
           <div>Due Date: {form.dueDate}</div>
         </div>
-        <table className="mt-2 w-full text-sm">
+        <table className="mt-2 w-full text-sm table-fixed">
+          <colgroup>
+            <col style={{ width: '20%' }} />
+            <col style={{ width: '40%' }} />
+            <col style={{ width: `${smallColWidth}%` }} />
+            <col style={{ width: `${smallColWidth}%` }} />
+            {form.showTax && <col style={{ width: `${smallColWidth}%` }} />}
+            <col style={{ width: `${smallColWidth}%` }} />
+          </colgroup>
           <thead>
             <tr className="border-b text-left">
               <th className="py-1">Item</th>
@@ -238,7 +244,9 @@ export default function NewInvoicePage() {
               return (
                 <tr key={it.id} className="border-b align-top">
                   <td className="py-1">{it.item}</td>
-                  <td className="py-1">{it.description}</td>
+                  <td className="py-1 whitespace-pre-wrap break-words">
+                    {it.description}
+                  </td>
                   <td className="py-1 text-right">{it.quantity}</td>
                   <td className="py-1 text-right">{it.rate}</td>
                   {form.showTax && (
@@ -298,7 +306,7 @@ export default function NewInvoicePage() {
                 ...f,
                 clientName: name,
                 clientId: idMap?.[name] || "",
-                buyerAddress: companyMap?.[name] || f.buyerAddress,
+                buyerAddress: infoMap?.[name] || f.buyerAddress,
               }));
             }}
           />
@@ -350,7 +358,15 @@ export default function NewInvoicePage() {
         />
         <div className="space-y-2 pt-2">
           <div className="font-semibold">Line Items</div>
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-fixed">
+            <colgroup>
+              <col style={{ width: '20%' }} />
+              <col style={{ width: '40%' }} />
+              <col style={{ width: `${smallColWidth}%` }} />
+              <col style={{ width: `${smallColWidth}%` }} />
+              {form.showTax && <col style={{ width: `${smallColWidth}%` }} />}
+              <col style={{ width: `${smallColWidth}%` }} />
+            </colgroup>
             <thead>
               <tr>
                 <th className="text-left">Item</th>
@@ -378,12 +394,13 @@ export default function NewInvoicePage() {
                       />
                     </td>
                     <td>
-                      <Input
+                      <Textarea
+                        rows={2}
                         value={it.description}
                         onChange={(e) =>
                           updateItem(it.id, "description", e.target.value)
                         }
-                        className="w-full"
+                        className="w-full resize-none"
                       />
                     </td>
                     <td>
@@ -392,7 +409,7 @@ export default function NewInvoicePage() {
                         onChange={(e) =>
                           updateItem(it.id, "quantity", e.target.value)
                         }
-                        className="w-16"
+                        className="w-full"
                       />
                     </td>
                     <td>
@@ -401,7 +418,7 @@ export default function NewInvoicePage() {
                         onChange={(e) =>
                           updateItem(it.id, "rate", e.target.value)
                         }
-                        className="w-20"
+                        className="w-full"
                       />
                     </td>
                     {form.showTax && (
@@ -411,7 +428,7 @@ export default function NewInvoicePage() {
                           onChange={(e) =>
                             updateItem(it.id, "tax", e.target.value)
                           }
-                          className="w-16"
+                          className="w-full"
                         />
                       </td>
                     )}
