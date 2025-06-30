@@ -176,6 +176,10 @@ model InvoiceTemplate {
   footer       String?
   companyName  String?
   companyAddress String?
+  contactEmail String?
+  zipCode      String?
+  city         String?
+  phone        String?
   notes        String?
   terms        String?
   accentColor  String?
