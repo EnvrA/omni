@@ -12,7 +12,10 @@ import {
   useSensors,
   DragEndEvent,
 } from "@dnd-kit/core";
-import { restrictToParentElement, snapCenterToCursor } from "@dnd-kit/modifiers";
+import {
+  restrictToParentElement,
+  snapCenterToCursor,
+} from "@dnd-kit/modifiers";
 import { toast } from "sonner";
 
 const defaultLayout: Record<string, { zone: string; x: number; y: number }> = {
@@ -20,13 +23,13 @@ const defaultLayout: Record<string, { zone: string; x: number; y: number }> = {
   header: { zone: "header", x: 50, y: 0 },
   companyName: { zone: "header", x: 0, y: 20 },
   companyAddress: { zone: "header", x: 0, y: 40 },
-  billTo: { zone: "body", x: 0, y: 0 },
+  billTo: { zone: "billing", x: 0, y: 0 },
   amount: { zone: "totals", x: 0, y: 0 },
   dueDate: { zone: "totals", x: 120, y: 0 },
-  body: { zone: "body", x: 0, y: 40 },
+  body: { zone: "items", x: 0, y: 40 },
   notes: { zone: "notes", x: 0, y: 0 },
   footer: { zone: "footer", x: 0, y: 0 },
-  terms: { zone: "terms", x: 0, y: 0 },
+  terms: { zone: "footer", x: 0, y: 20 },
 };
 
 function toNewLayout(data: any) {
@@ -35,8 +38,11 @@ function toNewLayout(data: any) {
   for (const key of Object.keys(defaultLayout)) {
     const item = (data as any)[key];
     if (item) {
+      let zone = item.zone || (defaultLayout as any)[key].zone;
+      if (zone === "body") zone = "billing";
+      if (zone === "terms") zone = "footer";
       layout[key] = {
-        zone: item.zone || (defaultLayout as any)[key].zone,
+        zone,
         x: item.x ?? (defaultLayout as any)[key].x,
         y: item.y ?? (defaultLayout as any)[key].y,
       };
@@ -58,7 +64,10 @@ const fetcher = async (url: string) => {
 };
 
 export default function InvoiceTemplatePage() {
-  const { data, mutate } = useSWR<{ template: any }>("/api/invoice/template", fetcher);
+  const { data, mutate } = useSWR<{ template: any }>(
+    "/api/invoice/template",
+    fetcher,
+  );
   const [form, setForm] = useState({
     logoUrl: "",
     header: "",
@@ -132,8 +141,16 @@ export default function InvoiceTemplatePage() {
     }
   }
 
-  function DraggableItem({ id, children }: { id: string; children: React.ReactNode }) {
-    const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
+  function DraggableItem({
+    id,
+    children,
+  }: {
+    id: string;
+    children: React.ReactNode;
+  }) {
+    const { attributes, listeners, setNodeRef, transform } = useDraggable({
+      id,
+    });
     const pos = form.layout[id] || { x: 0, y: 0 };
     const style = {
       position: "absolute" as const,
@@ -154,10 +171,18 @@ export default function InvoiceTemplatePage() {
     const [overZone, setOverZone] = useState<string | null>(null);
     const [dragging, setDragging] = useState(false);
 
-    const zones = ["header", "body", "items", "totals", "notes", "footer", "terms"] as const;
-    const refs: Record<string, React.RefObject<HTMLDivElement>> = Object.fromEntries(
-      zones.map((z) => [z, useRef<HTMLDivElement>(null)])
-    );
+    const zones = [
+      "header",
+      "billing",
+      "items",
+      "totals",
+      "notes",
+      "footer",
+    ] as const;
+    const refs: Record<
+      string,
+      React.RefObject<HTMLDivElement>
+    > = Object.fromEntries(zones.map((z) => [z, useRef<HTMLDivElement>(null)]));
 
     const handleDragEnd = (e: DragEndEvent) => {
       setDragging(false);
@@ -218,16 +243,28 @@ export default function InvoiceTemplatePage() {
       switch (id) {
         case "logo":
           return form.logoUrl ? (
-            <img src={form.logoUrl} alt="Logo" className="h-12 w-24 object-contain" />
+            <img
+              src={form.logoUrl}
+              alt="Logo"
+              className="h-12 w-24 object-contain"
+            />
           ) : (
-            <div className="flex h-12 w-24 items-center justify-center bg-gray-200 text-xs">Logo</div>
+            <div className="flex h-12 w-24 items-center justify-center bg-gray-200 text-xs">
+              Logo
+            </div>
           );
         case "header":
-          return <div className="text-sm font-semibold">{form.header || "Header"}</div>;
+          return (
+            <div className="text-sm font-semibold">
+              {form.header || "Header"}
+            </div>
+          );
         case "companyName":
           return <div className="text-sm">{form.companyName || "Company"}</div>;
         case "companyAddress":
-          return <div className="text-xs">{form.companyAddress || "Address"}</div>;
+          return (
+            <div className="text-xs">{form.companyAddress || "Address"}</div>
+          );
         case "billTo":
           return <div className="text-sm">Bill To</div>;
         case "amount":
@@ -255,7 +292,10 @@ export default function InvoiceTemplatePage() {
         onDragOver={(e) => setOverZone(e.over?.id as string)}
         onDragEnd={handleDragEnd}
       >
-        <div className="mx-auto mt-4 space-y-1 rounded border bg-white p-1" aria-label="Invoice layout editor">
+        <div
+          className="mx-auto mt-4 space-y-1 rounded border bg-white p-1"
+          aria-label="Invoice layout editor"
+        >
           {zones.map((z) => (
             <Zone key={z} id={z}>
               <Items zone={z} />
@@ -341,13 +381,16 @@ export default function InvoiceTemplatePage() {
       <TemplateEditor />
       <div className="flex flex-wrap gap-2">
         <Button onClick={save}>Save Template</Button>
-        <Button type="button" onClick={previewPdf}>Preview PDF</Button>
+        <Button type="button" onClick={previewPdf}>
+          Preview PDF
+        </Button>
         <Button type="button" onClick={() => setShowEmailPreview(true)}>
           Preview Email
         </Button>
       </div>
       <div className="text-sm text-gray-600">
-        Available shortcodes: {"{{invoiceNumber}}, {{clientName}}, {{amount}}, {{dueDate}}"}
+        Available shortcodes:{" "}
+        {"{{invoiceNumber}}, {{clientName}}, {{amount}}, {{dueDate}}"}
       </div>
       {showEmailPreview && (
         <div
@@ -360,7 +403,9 @@ export default function InvoiceTemplatePage() {
             className="w-80 space-y-2 rounded bg-white p-4 shadow"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-semibold">{form.emailSubject || "(no subject)"}</h2>
+            <h2 className="font-semibold">
+              {form.emailSubject || "(no subject)"}
+            </h2>
             <p className="whitespace-pre-wrap text-sm">{form.emailBody}</p>
             <div className="flex justify-end">
               <Button type="button" onClick={() => setShowEmailPreview(false)}>
