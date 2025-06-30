@@ -1,10 +1,19 @@
 "use client";
 import useSWR from "swr";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Input, Button, Textarea } from "@/components/ui";
 import { toast } from "sonner";
 import { v4 as uuid } from "uuid";
+
+interface LineItem {
+  id: string;
+  item: string;
+  description: string;
+  quantity: string;
+  rate: string;
+  tax: string;
+}
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -16,55 +25,92 @@ const fetcher = async (url: string) => {
   }
 };
 
-interface LineItem {
-  id: string;
-  service: string;
-  description: string;
-  quantity: string;
-  rate: string;
-}
-interface Section {
-  id: string;
-  heading: string;
-  tax: string;
-  items: LineItem[];
-}
-
 export default function NewInvoicePage() {
   const router = useRouter();
-  const { data: clients } = useSWR<{ clients: { id: string; name: string }[] }>(
-    "/api/clients",
+  const { data: template } = useSWR<{ template: any }>(
+    "/api/invoice/template",
     fetcher,
   );
+  const { data: clients } = useSWR<{
+    clients: { id: string; name: string; company?: string }[];
+  }>("/api/clients", fetcher);
 
   const [form, setForm] = useState({
-    title: "Invoice",
-    invoiceNumber: "",
-    issueDate: "",
-    dueDate: "",
     clientName: "",
     clientId: "",
+    buyerAddress: "",
+    logoUrl: "",
+    sellerAddress: "",
+    invoiceNumber: "",
+    invoiceDate: "",
+    dueDate: "",
     notes: "",
+    terms: "",
+    showTax: true,
+    items: [] as LineItem[],
   });
-  const [sections, setSections] = useState<Section[]>([]);
 
   useEffect(() => {
-    setForm((f) => ({
-      ...f,
-      invoiceNumber: `INV-${Date.now()}`,
-      issueDate: new Date().toISOString().split("T")[0],
-    }));
-    setSections([
-      {
-        id: uuid(),
-        heading: "Items",
-        tax: "0",
+    if (template?.template) {
+      const t = template.template;
+      setForm((f) => ({
+        ...f,
+        logoUrl: t.logoUrl || "",
+        sellerAddress: t.companyAddress || "",
+        buyerAddress:
+          typeof t.layout?.buyerAddress === "string"
+            ? t.layout.buyerAddress
+            : "",
+        invoiceNumber:
+          typeof t.layout?.invoiceNumber === "string"
+            ? t.layout.invoiceNumber
+            : `INV-${Date.now()}`,
+        invoiceDate:
+          typeof t.layout?.invoiceDate === "string"
+            ? t.layout.invoiceDate
+            : new Date().toISOString().split("T")[0],
+        dueDate: typeof t.layout?.dueDate === "string" ? t.layout.dueDate : "",
+        notes: t.notes || "",
+        terms: t.terms || "",
+        items: Array.isArray(t.layout?.items)
+          ? t.layout.items.map((it: any) => ({
+              id: it.id || uuid(),
+              item: it.item || "",
+              description: it.description || "",
+              quantity: it.quantity || "1",
+              rate: it.rate || "",
+              tax: it.tax || "",
+            }))
+          : [
+              {
+                id: uuid(),
+                item: "",
+                description: "",
+                quantity: "1",
+                rate: "",
+                tax: "",
+              },
+            ],
+        showTax: t.layout?.columns?.tax !== false,
+      }));
+    } else if (form.items.length === 0) {
+      setForm((f) => ({
+        ...f,
+        invoiceNumber: `INV-${Date.now()}`,
+        invoiceDate: new Date().toISOString().split("T")[0],
         items: [
-          { id: uuid(), service: "", description: "", quantity: "1", rate: "" },
+          {
+            id: uuid(),
+            item: "",
+            description: "",
+            quantity: "1",
+            rate: "",
+            tax: "",
+          },
         ],
-      },
-    ]);
-  }, []);
+      }));
+    }
+  }, [template]);
 
   const idMap = clients?.clients.reduce(
     (acc, c) => {
@@ -73,104 +119,56 @@ export default function NewInvoicePage() {
     },
     {} as Record<string, string>,
   );
+  const companyMap = clients?.clients.reduce(
+    (acc, c) => {
+      acc[c.name] = c.company || "";
+      return acc;
+    },
+    {} as Record<string, string>,
+  );
 
-  const subtotal = sections.reduce((sum, sec) => {
-    const sectionTotal = sec.items.reduce(
-      (s, it) =>
-        s + (parseFloat(it.rate) || 0) * (parseFloat(it.quantity) || 0),
-      0,
-    );
-    return sum + sectionTotal;
-  }, 0);
-  const taxTotal = sections.reduce((sum, sec) => {
-    const sectionTotal = sec.items.reduce(
-      (s, it) =>
-        s + (parseFloat(it.rate) || 0) * (parseFloat(it.quantity) || 0),
-      0,
-    );
-    return sum + (sectionTotal * (parseFloat(sec.tax) || 0)) / 100;
-  }, 0);
+  function updateItem(id: string, field: keyof LineItem, value: string) {
+    setForm((f) => ({
+      ...f,
+      items: f.items.map((it) =>
+        it.id === id ? { ...it, [field]: value } : it,
+      ),
+    }));
+  }
+  function addItem() {
+    setForm((f) => ({
+      ...f,
+      items: [
+        ...f.items,
+        {
+          id: uuid(),
+          item: "",
+          description: "",
+          quantity: "1",
+          rate: "",
+          tax: "",
+        },
+      ],
+    }));
+  }
+  function removeItem(id: string) {
+    setForm((f) => ({ ...f, items: f.items.filter((it) => it.id !== id) }));
+  }
+
+  const subtotal = form.items.reduce(
+    (sum, it) =>
+      sum + (parseFloat(it.rate) || 0) * (parseFloat(it.quantity) || 0),
+    0,
+  );
+  const taxTotal = form.items.reduce(
+    (sum, it) =>
+      sum +
+      (parseFloat(it.rate) || 0) *
+        (parseFloat(it.quantity) || 0) *
+        ((parseFloat(it.tax) || 0) / 100),
+    0,
+  );
   const total = subtotal + taxTotal;
-
-  function updateSection(
-    id: string,
-    field: keyof Section,
-    value: string | LineItem[],
-  ) {
-    setSections((secs) =>
-      secs.map((s) => (s.id === id ? { ...s, [field]: value } : s)),
-    );
-  }
-
-  function addSection() {
-    setSections((secs) => [
-      ...secs,
-      {
-        id: uuid(),
-        heading: "",
-        tax: "0",
-        items: [
-          { id: uuid(), service: "", description: "", quantity: "1", rate: "" },
-        ],
-      },
-    ]);
-  }
-
-  function removeSection(id: string) {
-    setSections((secs) => secs.filter((s) => s.id !== id));
-  }
-
-  function addLine(sectionId: string) {
-    setSections((secs) =>
-      secs.map((s) =>
-        s.id === sectionId
-          ? {
-              ...s,
-              items: [
-                ...s.items,
-                {
-                  id: uuid(),
-                  service: "",
-                  description: "",
-                  quantity: "1",
-                  rate: "",
-                },
-              ],
-            }
-          : s,
-      ),
-    );
-  }
-
-  function updateLine(
-    sectionId: string,
-    lineId: string,
-    field: keyof LineItem,
-    value: string,
-  ) {
-    setSections((secs) =>
-      secs.map((s) =>
-        s.id === sectionId
-          ? {
-              ...s,
-              items: s.items.map((it) =>
-                it.id === lineId ? { ...it, [field]: value } : it,
-              ),
-            }
-          : s,
-      ),
-    );
-  }
-
-  function removeLine(sectionId: string, lineId: string) {
-    setSections((secs) =>
-      secs.map((s) =>
-        s.id === sectionId
-          ? { ...s, items: s.items.filter((it) => it.id !== lineId) }
-          : s,
-      ),
-    );
-  }
 
   async function saveInvoice(e: React.FormEvent) {
     e.preventDefault();
@@ -180,8 +178,12 @@ export default function NewInvoicePage() {
       body: JSON.stringify({
         contactId: form.clientId,
         invoiceNumber: form.invoiceNumber || undefined,
-        amount: parseFloat(total.toFixed(2)),
+        invoiceDate: form.invoiceDate,
         dueDate: form.dueDate,
+        items: form.items,
+        columns: { tax: form.showTax },
+        notes: form.notes,
+        terms: form.terms,
       }),
     });
     if (!res.ok) {
@@ -192,207 +194,272 @@ export default function NewInvoicePage() {
     router.push("/dashboard/invoices");
   }
 
-  return (
-    <form onSubmit={saveInvoice} className="space-y-6 p-4">
-      <div className="space-y-2 rounded border p-3">
-        <h2 className="font-semibold">Header</h2>
-        <label className="text-sm font-medium" htmlFor="invoice-title">
-          Title*
-        </label>
-        <Input
-          id="invoice-title"
-          aria-label="Title"
-          value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
-        />
-        <label className="text-sm font-medium" htmlFor="invoice-number">
-          Invoice Number*
-        </label>
-        <Input
-          id="invoice-number"
-          aria-label="Invoice Number"
-          value={form.invoiceNumber}
-          onChange={(e) => setForm({ ...form, invoiceNumber: e.target.value })}
-        />
-        <div className="flex flex-wrap gap-2">
-          <div className="flex flex-col">
-            <label className="text-sm font-medium" htmlFor="issue-date">
-              Issue Date*
-            </label>
-            <Input
-              id="issue-date"
-              type="date"
-              aria-label="Issue Date"
-              value={form.issueDate}
-              onChange={(e) => setForm({ ...form, issueDate: e.target.value })}
-            />
-          </div>
-          <div className="flex flex-col">
-            <label className="text-sm font-medium" htmlFor="due-date">
-              Due Date*
-            </label>
-            <Input
-              id="due-date"
-              type="date"
-              aria-label="Due Date"
-              value={form.dueDate}
-              onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-            />
+  function Preview() {
+    return (
+      <div className="mx-auto w-full max-w-lg space-y-2 rounded border bg-white p-4">
+        <div className="flex justify-between">
+          <div>
+            {form.logoUrl && (
+              <img
+                src={form.logoUrl}
+                alt="Logo"
+                className="h-16 object-contain"
+              />
+            )}
+            <div className="whitespace-pre-wrap text-sm">
+              {form.sellerAddress}
+            </div>
           </div>
         </div>
-      </div>
-
-      <div className="space-y-2 rounded border p-3">
-        <h2 className="font-semibold">Client</h2>
-        <label className="text-sm font-medium" htmlFor="client-field">
-          Client*
-        </label>
-        <Input
-          id="client-field"
-          list="client-list"
-          placeholder="Search client"
-          value={form.clientName}
-          onChange={(e) => {
-            const name = e.target.value;
-            setForm((f) => ({
-              ...f,
-              clientName: name,
-              clientId: idMap?.[name] || "",
-            }));
-          }}
-        />
-        <datalist id="client-list">
-          {clients?.clients.map((c) => <option key={c.id} value={c.name} />)}
-        </datalist>
-      </div>
-
-      {sections.map((sec) => (
-        <div key={sec.id} className="space-y-2 rounded border p-3">
-          <div className="flex items-center justify-between gap-2">
-            <Input
-              aria-label="Section Heading"
-              value={sec.heading}
-              onChange={(e) => updateSection(sec.id, "heading", e.target.value)}
-              className="flex-1"
-            />
-            <Button type="button" onClick={() => removeSection(sec.id)}>
-              Remove Section
-            </Button>
-          </div>
-          {sec.items.map((li) => (
-            <div key={li.id} className="flex flex-wrap items-end gap-2">
-              <Input
-                placeholder="Service"
-                value={li.service}
-                onChange={(e) =>
-                  updateLine(sec.id, li.id, "service", e.target.value)
-                }
-                className="flex-1"
-              />
-              <Input
-                placeholder="Description"
-                value={li.description}
-                onChange={(e) =>
-                  updateLine(sec.id, li.id, "description", e.target.value)
-                }
-                className="flex-1"
-              />
-              <Input
-                type="number"
-                placeholder="Qty"
-                value={li.quantity}
-                onChange={(e) =>
-                  updateLine(sec.id, li.id, "quantity", e.target.value)
-                }
-                className="w-16"
-              />
-              <Input
-                type="number"
-                placeholder="Rate"
-                value={li.rate}
-                onChange={(e) =>
-                  updateLine(sec.id, li.id, "rate", e.target.value)
-                }
-                className="w-20"
-              />
-              <Input
-                disabled
-                aria-label="Total"
-                value={(
-                  (parseFloat(li.rate) || 0) * (parseFloat(li.quantity) || 0)
-                ).toFixed(2)}
-                className="w-20 bg-gray-100"
-              />
-              <Button
-                type="button"
-                onClick={() => removeLine(sec.id, li.id)}
-                className="self-start"
-              >
-                Remove
-              </Button>
+        <div className="pt-2 text-sm">
+          <div className="font-semibold">Bill To</div>
+          <div className="whitespace-pre-wrap">{form.buyerAddress}</div>
+        </div>
+        <div className="flex flex-wrap gap-4 pt-2 text-sm">
+          <div>Invoice #: {form.invoiceNumber}</div>
+          <div>Invoice Date: {form.invoiceDate}</div>
+          <div>Due Date: {form.dueDate}</div>
+        </div>
+        <table className="mt-2 w-full text-sm">
+          <thead>
+            <tr className="border-b text-left">
+              <th className="py-1">Item</th>
+              <th className="py-1">Description</th>
+              <th className="py-1">Qty</th>
+              <th className="py-1">Rate</th>
+              {form.showTax && <th className="py-1">Tax %</th>}
+              <th className="py-1 text-right">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {form.items.map((it) => {
+              const sub =
+                (parseFloat(it.rate) || 0) * (parseFloat(it.quantity) || 0);
+              return (
+                <tr key={it.id} className="border-b align-top">
+                  <td className="py-1">{it.item}</td>
+                  <td className="py-1">{it.description}</td>
+                  <td className="py-1 text-right">{it.quantity}</td>
+                  <td className="py-1 text-right">{it.rate}</td>
+                  {form.showTax && (
+                    <td className="py-1 text-right">{it.tax}</td>
+                  )}
+                  <td className="py-1 text-right">{sub.toFixed(2)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <div className="flex justify-end pt-2 text-sm">
+          <div className="w-40 space-y-1">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>{subtotal.toFixed(2)}</span>
             </div>
-          ))}
-          <Button
-            type="button"
-            onClick={() => addLine(sec.id)}
-            className="mt-1"
-          >
+            {form.showTax && (
+              <div className="flex justify-between">
+                <span>Tax</span>
+                <span>{taxTotal.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-semibold">
+              <span>Total</span>
+              <span>{total.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+        {form.notes && (
+          <div className="whitespace-pre-wrap pt-2 text-sm">{form.notes}</div>
+        )}
+        {form.terms && (
+          <div className="whitespace-pre-wrap pt-2 text-xs text-gray-500">
+            {form.terms}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 md:flex md:gap-4">
+      <form onSubmit={saveInvoice} className="flex-1 space-y-2">
+        <div>
+          <label className="text-sm font-medium" htmlFor="client-field">
+            Client
+          </label>
+          <Input
+            id="client-field"
+            list="client-list"
+            placeholder="Search client"
+            value={form.clientName}
+            onChange={(e) => {
+              const name = e.target.value;
+              setForm((f) => ({
+                ...f,
+                clientName: name,
+                clientId: idMap?.[name] || "",
+                buyerAddress: companyMap?.[name] || f.buyerAddress,
+              }));
+            }}
+          />
+          <datalist id="client-list">
+            {clients?.clients.map((c) => <option key={c.id} value={c.name} />)}
+          </datalist>
+        </div>
+        {form.logoUrl && (
+          <img
+            src={form.logoUrl}
+            alt="Company logo"
+            className="h-16 w-16 object-contain"
+          />
+        )}
+        <Textarea
+          placeholder="Seller Address"
+          value={form.sellerAddress}
+          onChange={(e) =>
+            setForm((f) => ({ ...f, sellerAddress: e.target.value }))
+          }
+        />
+        <Textarea
+          placeholder="Buyer Address"
+          value={form.buyerAddress}
+          onChange={(e) =>
+            setForm((f) => ({ ...f, buyerAddress: e.target.value }))
+          }
+        />
+        <Input
+          placeholder="Invoice Number"
+          value={form.invoiceNumber}
+          onChange={(e) =>
+            setForm((f) => ({ ...f, invoiceNumber: e.target.value }))
+          }
+        />
+        <Input
+          type="date"
+          placeholder="Invoice Date"
+          value={form.invoiceDate}
+          onChange={(e) =>
+            setForm((f) => ({ ...f, invoiceDate: e.target.value }))
+          }
+        />
+        <Input
+          type="date"
+          placeholder="Due Date"
+          value={form.dueDate}
+          onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
+        />
+        <div className="space-y-2 pt-2">
+          <div className="font-semibold">Line Items</div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr>
+                <th className="text-left">Item</th>
+                <th className="text-left">Description</th>
+                <th>Qty</th>
+                <th>Rate</th>
+                {form.showTax && <th>Tax %</th>}
+                <th className="text-right">Subtotal</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {form.items.map((it) => {
+                const sub =
+                  (parseFloat(it.rate) || 0) * (parseFloat(it.quantity) || 0);
+                return (
+                  <tr key={it.id} className="align-top">
+                    <td>
+                      <Input
+                        value={it.item}
+                        onChange={(e) =>
+                          updateItem(it.id, "item", e.target.value)
+                        }
+                        className="w-full"
+                      />
+                    </td>
+                    <td>
+                      <Input
+                        value={it.description}
+                        onChange={(e) =>
+                          updateItem(it.id, "description", e.target.value)
+                        }
+                        className="w-full"
+                      />
+                    </td>
+                    <td>
+                      <Input
+                        value={it.quantity}
+                        onChange={(e) =>
+                          updateItem(it.id, "quantity", e.target.value)
+                        }
+                        className="w-16"
+                      />
+                    </td>
+                    <td>
+                      <Input
+                        value={it.rate}
+                        onChange={(e) =>
+                          updateItem(it.id, "rate", e.target.value)
+                        }
+                        className="w-20"
+                      />
+                    </td>
+                    {form.showTax && (
+                      <td>
+                        <Input
+                          value={it.tax}
+                          onChange={(e) =>
+                            updateItem(it.id, "tax", e.target.value)
+                          }
+                          className="w-16"
+                        />
+                      </td>
+                    )}
+                    <td className="p-1 text-right">{sub.toFixed(2)}</td>
+                    <td>
+                      <Button type="button" onClick={() => removeItem(it.id)}>
+                        Remove
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <Button type="button" onClick={addItem} className="mt-1">
             + Add Line
           </Button>
-          <div className="flex items-center gap-2 pt-2">
-            <label className="text-sm" htmlFor={`tax-${sec.id}`}>
-              Tax %
-            </label>
-            <Input
-              id={`tax-${sec.id}`}
-              type="number"
-              value={sec.tax}
-              onChange={(e) => updateSection(sec.id, "tax", e.target.value)}
-              className="w-20"
+          <label className="flex items-center gap-2 pt-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.showTax}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, showTax: e.target.checked }))
+              }
             />
-          </div>
-        </div>
-      ))}
-
-      <Button type="button" onClick={addSection} className="mt-2">
-        + Add Section
-      </Button>
-
-      <div className="space-y-2 rounded border p-3">
-        <h2 className="font-semibold">Totals & Notes</h2>
-        <div className="flex flex-wrap gap-2">
-          <Input
-            aria-label="Subtotal"
-            value={subtotal.toFixed(2)}
-            disabled
-            className="w-24 bg-gray-100"
-          />
-          <Input
-            aria-label="Tax"
-            value={taxTotal.toFixed(2)}
-            disabled
-            className="w-24 bg-gray-100"
-          />
-          <Input
-            aria-label="Total"
-            value={total.toFixed(2)}
-            disabled
-            className="w-24 bg-gray-100"
-          />
+            Show Tax Column
+          </label>
         </div>
         <Textarea
           placeholder="Notes"
           value={form.notes}
-          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
         />
+        <Textarea
+          placeholder="Terms"
+          value={form.terms}
+          onChange={(e) => setForm((f) => ({ ...f, terms: e.target.value }))}
+        />
+        <div className="flex justify-end gap-2">
+          <Button type="button" onClick={() => router.back()}>
+            Cancel
+          </Button>
+          <Button type="submit">Save Invoice</Button>
+        </div>
+      </form>
+      <div className="flex-1 pt-2">
+        <Preview />
       </div>
-
-      <div className="flex justify-end gap-2">
-        <Button type="button" onClick={() => router.back()}>
-          Cancel
-        </Button>
-        <Button type="submit">Save Invoice</Button>
-      </div>
-    </form>
+    </div>
   );
 }
