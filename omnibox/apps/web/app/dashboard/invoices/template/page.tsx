@@ -49,23 +49,31 @@ export default function InvoiceTemplatePage() {
       setForm({
         logoUrl: t.logoUrl || "",
         sellerAddress: t.companyAddress || "",
-        buyerAddress: t.layout?.buyerAddress || "",
-        invoiceNumber: t.layout?.invoiceNumber || "",
-        invoiceDate: t.layout?.invoiceDate || "",
-        dueDate: t.layout?.dueDate || "",
+        buyerAddress:
+          typeof t.layout?.buyerAddress === "string" ? t.layout.buyerAddress : "",
+        invoiceNumber:
+          typeof t.layout?.invoiceNumber === "string"
+            ? t.layout.invoiceNumber
+            : "",
+        invoiceDate:
+          typeof t.layout?.invoiceDate === "string" ? t.layout.invoiceDate : "",
+        dueDate:
+          typeof t.layout?.dueDate === "string" ? t.layout.dueDate : "",
         notes: t.notes || "",
         terms: t.terms || "",
         footer: t.footer || "",
         items:
-          t.layout?.items?.map((it: any) => ({
-            id: it.id || uuid(),
-            item: it.item || "",
-            quantity: it.quantity || "1",
-            rate: it.rate || "",
-            tax: it.tax || "",
-          })) || [
-            { id: uuid(), item: "", quantity: "1", rate: "", tax: "" },
-          ],
+          Array.isArray(t.layout?.items)
+            ? t.layout.items.map((it: any) => ({
+                id: it.id || uuid(),
+                item: it.item || "",
+                quantity: it.quantity || "1",
+                rate: it.rate || "",
+                tax: it.tax || "",
+              }))
+            : [
+                { id: uuid(), item: "", quantity: "1", rate: "", tax: "" },
+              ],
         showTax: t.layout?.columns?.tax !== false,
       });
     } else if (!form.items.length) {
