@@ -1,23 +1,51 @@
 "use client";
 import useSWR from "swr";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input, Button, Textarea } from "@/components/ui";
-import { DndContext, useDraggable } from "@dnd-kit/core";
+import {
+  DndContext,
+  useDraggable,
+  useDroppable,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import { restrictToParentElement, snapCenterToCursor } from "@dnd-kit/modifiers";
 import { toast } from "sonner";
 
-const defaultLayout: Record<string, { x: number; y: number }> = {
-  logo: { x: 50, y: 760 },
-  header: { x: 50, y: 700 },
-  companyName: { x: 50, y: 680 },
-  companyAddress: { x: 50, y: 660 },
-  billTo: { x: 50, y: 620 },
-  amount: { x: 50, y: 600 },
-  dueDate: { x: 50, y: 580 },
-  body: { x: 50, y: 540 },
-  notes: { x: 50, y: 520 },
-  footer: { x: 50, y: 40 },
-  terms: { x: 50, y: 20 },
+const defaultLayout: Record<string, { zone: string; x: number; y: number }> = {
+  logo: { zone: "header", x: 0, y: 0 },
+  header: { zone: "header", x: 50, y: 0 },
+  companyName: { zone: "header", x: 0, y: 20 },
+  companyAddress: { zone: "header", x: 0, y: 40 },
+  billTo: { zone: "body", x: 0, y: 0 },
+  amount: { zone: "totals", x: 0, y: 0 },
+  dueDate: { zone: "totals", x: 120, y: 0 },
+  body: { zone: "body", x: 0, y: 40 },
+  notes: { zone: "notes", x: 0, y: 0 },
+  footer: { zone: "footer", x: 0, y: 0 },
+  terms: { zone: "terms", x: 0, y: 0 },
 };
+
+function toNewLayout(data: any) {
+  const layout: Record<string, { zone: string; x: number; y: number }> = {};
+  if (!data) return defaultLayout;
+  for (const key of Object.keys(defaultLayout)) {
+    const item = (data as any)[key];
+    if (item) {
+      layout[key] = {
+        zone: item.zone || (defaultLayout as any)[key].zone,
+        x: item.x ?? (defaultLayout as any)[key].x,
+        y: item.y ?? (defaultLayout as any)[key].y,
+      };
+    } else {
+      layout[key] = (defaultLayout as any)[key];
+    }
+  }
+  return layout;
+}
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -61,7 +89,7 @@ export default function InvoiceTemplatePage() {
         accentColor: data.template.accentColor || "",
         emailSubject: data.template.emailSubject || "",
         emailBody: data.template.emailBody || "",
-        layout: data.template.layout || defaultLayout,
+        layout: toNewLayout(data.template.layout),
       });
     }
   }, [data]);
@@ -112,6 +140,7 @@ export default function InvoiceTemplatePage() {
       left: pos.x + (transform?.x ?? 0),
       top: pos.y + (transform?.y ?? 0),
       cursor: "move",
+      touchAction: "none" as const,
     };
     return (
       <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
@@ -121,64 +150,117 @@ export default function InvoiceTemplatePage() {
   }
 
   function TemplateEditor() {
+    const sensors = useSensors(useSensor(MouseSensor), useSensor(TouchSensor));
+    const [overZone, setOverZone] = useState<string | null>(null);
+    const [dragging, setDragging] = useState(false);
+
+    const zones = ["header", "body", "items", "totals", "notes", "footer", "terms"] as const;
+    const refs: Record<string, React.RefObject<HTMLDivElement>> = Object.fromEntries(
+      zones.map((z) => [z, useRef<HTMLDivElement>(null)])
+    );
+
+    const handleDragEnd = (e: DragEndEvent) => {
+      setDragging(false);
+      setOverZone(null);
+      const { active, over } = e;
+      if (!over) return;
+      const zone = over.id as string;
+      const zoneRef = refs[zone];
+      if (!zoneRef?.current) return;
+      const zoneRect = zoneRef.current.getBoundingClientRect();
+      const activeRect = e.active.rect.current.translated;
+      const grid = 10;
+      const x = Math.round((activeRect.left - zoneRect.left) / grid) * grid;
+      const y = Math.round((activeRect.top - zoneRect.top) / grid) * grid;
+      setForm((f) => ({
+        ...f,
+        layout: {
+          ...f.layout,
+          [active.id]: { zone, x, y },
+        },
+      }));
+    };
+
+    function Zone({ id, children }: { id: string; children: React.ReactNode }) {
+      const { isOver, setNodeRef } = useDroppable({ id });
+      const highlight = dragging && (isOver || overZone === id);
+      return (
+        <div
+          ref={(el) => {
+            setNodeRef(el);
+            refs[id].current = el;
+          }}
+          id={id}
+          className={`relative border border-dashed ${highlight ? "bg-blue-50" : ""}`}
+          style={{ minHeight: 60 }}
+          aria-label={`${id} drop zone`}
+        >
+          {children}
+        </div>
+      );
+    }
+
+    function Items({ zone }: { zone: string }) {
+      return (
+        <>
+          {Object.keys(form.layout)
+            .filter((key) => form.layout[key].zone === zone)
+            .map((key) => (
+              <DraggableItem key={key} id={key}>
+                {renderItem(key)}
+              </DraggableItem>
+            ))}
+        </>
+      );
+    }
+
+    function renderItem(id: string) {
+      switch (id) {
+        case "logo":
+          return form.logoUrl ? (
+            <img src={form.logoUrl} alt="Logo" className="h-12 w-24 object-contain" />
+          ) : (
+            <div className="flex h-12 w-24 items-center justify-center bg-gray-200 text-xs">Logo</div>
+          );
+        case "header":
+          return <div className="text-sm font-semibold">{form.header || "Header"}</div>;
+        case "companyName":
+          return <div className="text-sm">{form.companyName || "Company"}</div>;
+        case "companyAddress":
+          return <div className="text-xs">{form.companyAddress || "Address"}</div>;
+        case "billTo":
+          return <div className="text-sm">Bill To</div>;
+        case "amount":
+          return <div className="text-sm">Amount</div>;
+        case "dueDate":
+          return <div className="text-sm">Due Date</div>;
+        case "body":
+          return <div className="text-sm">{form.body || "Body"}</div>;
+        case "notes":
+          return <div className="text-xs">{form.notes || "Notes"}</div>;
+        case "footer":
+          return <div className="text-xs">{form.footer || "Footer"}</div>;
+        case "terms":
+          return <div className="text-[10px]">{form.terms || "Terms"}</div>;
+        default:
+          return id;
+      }
+    }
+
     return (
       <DndContext
-        onDragEnd={(e) => {
-          const { id } = e.active;
-          const delta = e.delta;
-          setForm((f) => ({
-            ...f,
-            layout: {
-              ...f.layout,
-              [id]: {
-                x: (f.layout[id]?.x || 0) + delta.x,
-                y: (f.layout[id]?.y || 0) + delta.y,
-              },
-            },
-          }));
-        }}
+        sensors={sensors}
+        modifiers={[restrictToParentElement, snapCenterToCursor]}
+        onDragStart={() => setDragging(true)}
+        onDragOver={(e) => setOverZone(e.over?.id as string)}
+        onDragEnd={handleDragEnd}
       >
-        <div
-          className="relative mx-auto mt-4 h-[420px] w-[300px] rounded border bg-white"
-          aria-label="Invoice layout editor"
-        >
-          <DraggableItem id="logo">
-            {form.logoUrl ? (
-              <img src={form.logoUrl} alt="Logo" className="h-12 w-24 object-contain" />
-            ) : (
-              <div className="h-12 w-24 bg-gray-200 text-xs flex items-center justify-center">Logo</div>
-            )}
-          </DraggableItem>
-          <DraggableItem id="header">
-            <div className="text-sm font-semibold">{form.header || "Header"}</div>
-          </DraggableItem>
-          <DraggableItem id="companyName">
-            <div className="text-sm">{form.companyName || "Company"}</div>
-          </DraggableItem>
-          <DraggableItem id="companyAddress">
-            <div className="text-xs">{form.companyAddress || "Address"}</div>
-          </DraggableItem>
-          <DraggableItem id="billTo">
-            <div className="text-sm">Bill To</div>
-          </DraggableItem>
-          <DraggableItem id="amount">
-            <div className="text-sm">Amount</div>
-          </DraggableItem>
-          <DraggableItem id="dueDate">
-            <div className="text-sm">Due Date</div>
-          </DraggableItem>
-          <DraggableItem id="body">
-            <div className="text-sm">{form.body || "Body"}</div>
-          </DraggableItem>
-          <DraggableItem id="notes">
-            <div className="text-xs">{form.notes || "Notes"}</div>
-          </DraggableItem>
-          <DraggableItem id="footer">
-            <div className="text-xs">{form.footer || "Footer"}</div>
-          </DraggableItem>
-          <DraggableItem id="terms">
-            <div className="text-[10px]">{form.terms || "Terms"}</div>
-          </DraggableItem>
+        <div className="mx-auto mt-4 space-y-1 rounded border bg-white p-1" aria-label="Invoice layout editor">
+          {zones.map((z) => (
+            <Zone key={z} id={z}>
+              <Items zone={z} />
+            </Zone>
+          ))}
         </div>
       </DndContext>
     );
