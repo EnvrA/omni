@@ -71,26 +71,56 @@ export default function SettingsPage() {
       <div>
         <h2 className="mb-2 text-lg font-semibold">Company Details</h2>
         <div className="space-y-2">
+          {company.logoUrl && (
+            <img
+              src={company.logoUrl}
+              alt="Company logo"
+              className="h-16 w-16 object-contain"
+            />
+          )}
           <Input
-            placeholder="Logo URL"
-            value={company.logoUrl}
-            onChange={(e) => setCompany({ ...company, logoUrl: e.target.value })}
+            type="file"
+            accept="image/*"
+            aria-label="Company logo"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = (ev) =>
+                setCompany({ ...company, logoUrl: ev.target?.result as string });
+              reader.readAsDataURL(file);
+            }}
           />
+          <label className="block" htmlFor="company-name">
+            Company Name<span className="text-red-600">*</span>
+          </label>
           <Input
+            id="company-name"
+            required
             placeholder="Company Name"
             value={company.companyName}
             onChange={(e) =>
               setCompany({ ...company, companyName: e.target.value })
             }
           />
+          <label className="block" htmlFor="company-address">
+            Address and Number<span className="text-red-600">*</span>
+          </label>
           <Input
+            id="company-address"
+            required
             placeholder="Address and Number"
             value={company.companyAddress}
             onChange={(e) =>
               setCompany({ ...company, companyAddress: e.target.value })
             }
           />
+          <label className="block" htmlFor="contact-email">
+            Contact Email<span className="text-red-600">*</span>
+          </label>
           <Input
+            id="contact-email"
+            required
             placeholder="Contact Email"
             value={company.contactEmail}
             onChange={(e) =>
@@ -98,22 +128,38 @@ export default function SettingsPage() {
             }
           />
           <div className="flex gap-2">
-            <Input
-              placeholder="Zip Code"
-              value={company.zipCode}
-              onChange={(e) =>
-                setCompany({ ...company, zipCode: e.target.value })
-              }
-              className="flex-1"
-            />
-            <Input
-              placeholder="City"
-              value={company.city}
-              onChange={(e) => setCompany({ ...company, city: e.target.value })}
-              className="flex-1"
-            />
+            <div className="flex-1">
+              <label className="block" htmlFor="zip-code">
+                Zip Code<span className="text-red-600">*</span>
+              </label>
+              <Input
+                id="zip-code"
+                required
+                placeholder="Zip Code"
+                value={company.zipCode}
+                onChange={(e) =>
+                  setCompany({ ...company, zipCode: e.target.value })
+                }
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block" htmlFor="city">
+                City<span className="text-red-600">*</span>
+              </label>
+              <Input
+                id="city"
+                required
+                placeholder="City"
+                value={company.city}
+                onChange={(e) =>
+                  setCompany({ ...company, city: e.target.value })
+                }
+              />
+            </div>
           </div>
+          <label className="block" htmlFor="phone">Phone</label>
           <Input
+            id="phone"
             placeholder="Phone"
             value={company.phone}
             onChange={(e) => setCompany({ ...company, phone: e.target.value })}
