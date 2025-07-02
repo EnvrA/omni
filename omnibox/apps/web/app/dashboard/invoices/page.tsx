@@ -53,6 +53,58 @@ export default function InvoicesPage() {
     }
   }
 
+  async function deleteInvoice(id: string) {
+    if (!confirm("Delete this invoice?") || !confirm("Are you sure?")) return;
+    const res = await fetch(`/api/invoice/${id}`);
+    const j = await res.json();
+    await fetch(`/api/invoice/${id}`, { method: "DELETE" });
+    toast.success("Invoice deleted", {
+      action: {
+        label: "Undo",
+        onClick: async () => {
+          await fetch("/api/invoices", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contactId: j.invoice.contactId,
+              invoiceNumber: j.invoice.invoiceNumber,
+              amount: j.invoice.amount,
+              dueDate: j.invoice.dueDate,
+              pdfBase64: j.invoice.pdfUrl?.split(",")[1],
+            }),
+          });
+          mutate();
+        },
+      },
+    });
+    mutate();
+  }
+
+  async function archiveInvoice(id: string) {
+    if (!confirm("Archive this invoice?") || !confirm("Are you sure?")) return;
+    await action(id, "archive");
+    toast.success("Invoice archived", {
+      action: {
+        label: "Undo",
+        onClick: async () => {
+          await action(id, "unarchive");
+        },
+      },
+    });
+  }
+
+  function openPdf(url: string) {
+    const base = url.split(",", 2)[1];
+    const binary = atob(base);
+    const len = binary.length;
+    const arr = new Uint8Array(len);
+    for (let i = 0; i < len; i++) arr[i] = binary.charCodeAt(i);
+    const blob = new Blob([arr], { type: "application/pdf" });
+    const pdfUrl = URL.createObjectURL(blob);
+    window.open(pdfUrl, "_blank");
+    setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
+  }
+
   const filteredInvoices = data?.invoices.filter((inv) => {
     const q = search.toLowerCase();
     const searchMatch =
@@ -156,17 +208,18 @@ export default function InvoicesPage() {
                   </Button>
                 )}
                 {inv.status === "DRAFT" && (
-                  <Button onClick={() => action(inv.id, "send")}>Send</Button>
+                  <>
+                    <Button onClick={() => action(inv.id, "send")}>Send</Button>
+                    <Button onClick={() => deleteInvoice(inv.id)}>Delete</Button>
+                  </>
+                )}
+                {inv.status === "SENT" && (
+                  <Button onClick={() => archiveInvoice(inv.id)}>Archive</Button>
                 )}
                 {inv.pdfUrl && (
-                  <a
-                    href={inv.pdfUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-blue-600 underline"
-                  >
+                  <Button type="button" onClick={() => openPdf(inv.pdfUrl)}>
                     PDF
-                  </a>
+                  </Button>
                 )}
               </div>
             </Card>
