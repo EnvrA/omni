@@ -94,15 +94,9 @@ export default function InvoicesPage() {
   }
 
   function openPdf(url: string) {
-    const base = url.split(",", 2)[1];
-    const binary = atob(base);
-    const len = binary.length;
-    const arr = new Uint8Array(len);
-    for (let i = 0; i < len; i++) arr[i] = binary.charCodeAt(i);
-    const blob = new Blob([arr], { type: "application/pdf" });
-    const pdfUrl = URL.createObjectURL(blob);
-    window.open(pdfUrl, "_blank");
-    setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
+    // The stored PDF is a data URL, so opening it directly is simpler and
+    // avoids issues with manual base64 decoding.
+    window.open(url, "_blank");
   }
 
   const filteredInvoices = data?.invoices.filter((inv) => {
@@ -111,12 +105,14 @@ export default function InvoicesPage() {
       !search ||
       inv.status.toLowerCase().includes(q) ||
       (q.includes("mark paid") && inv.status !== "PAID") ||
-      ((q.includes("to send") || q.includes("send")) && inv.status === "DRAFT");
+      ((q.includes("to send") || q.includes("send")) && inv.status === "DRAFT") ||
+      (q.includes("archived") && inv.status === "ARCHIVED");
     const filterMatch =
       filter === "all" ||
       (filter === "draft" && inv.status === "DRAFT") ||
       (filter === "sent" && inv.status === "SENT") ||
       (filter === "paid" && inv.status === "PAID") ||
+      (filter === "archived" && inv.status === "ARCHIVED") ||
       (filter === "markPaid" && inv.status !== "PAID") ||
       (filter === "toSend" && inv.status === "DRAFT");
     return searchMatch && filterMatch;
@@ -143,6 +139,7 @@ export default function InvoicesPage() {
             <option value="draft">Draft</option>
             <option value="sent">Sent</option>
             <option value="paid">Paid</option>
+            <option value="archived">Archived</option>
             <option value="markPaid">Mark Paid</option>
             <option value="toSend">To Send</option>
           </select>
@@ -209,12 +206,27 @@ export default function InvoicesPage() {
                 )}
                 {inv.status === "DRAFT" && (
                   <>
-                    <Button onClick={() => action(inv.id, "send")}>Send</Button>
-                    <Button onClick={() => deleteInvoice(inv.id)}>Delete</Button>
+                    <Button
+                      className="border-green-700 bg-green-600 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
+                      onClick={() => action(inv.id, "send")}
+                    >
+                      Send
+                    </Button>
+                    <Button
+                      className="border-red-700 bg-red-600 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                      onClick={() => deleteInvoice(inv.id)}
+                    >
+                      Delete
+                    </Button>
                   </>
                 )}
                 {inv.status === "SENT" && (
-                  <Button onClick={() => archiveInvoice(inv.id)}>Archive</Button>
+                  <Button
+                    className="border-orange-700 bg-orange-600 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+                    onClick={() => archiveInvoice(inv.id)}
+                  >
+                    Archive
+                  </Button>
                 )}
                 {inv.pdfUrl && (
                   <Button type="button" onClick={() => openPdf(inv.pdfUrl)}>
