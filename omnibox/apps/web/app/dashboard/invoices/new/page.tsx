@@ -129,7 +129,9 @@ export default function NewInvoicePage() {
   useEffect(() => {
     if (existing?.invoice) {
       const inv = existing.invoice;
-      const name = clients?.clients.find((c) => c.id === inv.contactId)?.name;
+      const name =
+        clients?.clients.find((c) => c.id === inv.contactId)?.name ||
+        inv.contact?.name;
       setForm((f) => ({
         ...f,
         clientId: inv.contactId,
