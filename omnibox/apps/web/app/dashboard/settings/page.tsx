@@ -164,7 +164,12 @@ export default function SettingsPage() {
             value={company.phone}
             onChange={(e) => setCompany({ ...company, phone: e.target.value })}
           />
-          <Button onClick={saveCompany}>Save Company</Button>
+          <Button
+            onClick={saveCompany}
+            className="border-green-700 bg-green-600 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
+          >
+            Save Company
+          </Button>
         </div>
       </div>
     </div>

@@ -151,6 +151,7 @@ enum InvoiceStatus {
   DRAFT
   SENT
   PAID
+  ARCHIVED
 }
 
 model Invoice {
