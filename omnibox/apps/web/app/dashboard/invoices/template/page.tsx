@@ -50,30 +50,28 @@ export default function InvoiceTemplatePage() {
         logoUrl: t.logoUrl || "",
         sellerAddress: t.companyAddress || "",
         buyerAddress:
-          typeof t.layout?.buyerAddress === "string" ? t.layout.buyerAddress : "",
+          typeof t.layout?.buyerAddress === "string"
+            ? t.layout.buyerAddress
+            : "",
         invoiceNumber:
           typeof t.layout?.invoiceNumber === "string"
             ? t.layout.invoiceNumber
             : "",
         invoiceDate:
           typeof t.layout?.invoiceDate === "string" ? t.layout.invoiceDate : "",
-        dueDate:
-          typeof t.layout?.dueDate === "string" ? t.layout.dueDate : "",
+        dueDate: typeof t.layout?.dueDate === "string" ? t.layout.dueDate : "",
         notes: t.notes || "",
         terms: t.terms || "",
         footer: t.footer || "",
-        items:
-          Array.isArray(t.layout?.items)
-            ? t.layout.items.map((it: any) => ({
-                id: it.id || uuid(),
-                item: it.item || "",
-                quantity: it.quantity || "1",
-                rate: it.rate || "",
-                tax: it.tax || "",
-              }))
-            : [
-                { id: uuid(), item: "", quantity: "1", rate: "", tax: "" },
-              ],
+        items: Array.isArray(t.layout?.items)
+          ? t.layout.items.map((it: any) => ({
+              id: it.id || uuid(),
+              item: it.item || "",
+              quantity: it.quantity || "1",
+              rate: it.rate || "",
+              tax: it.tax || "",
+            }))
+          : [{ id: uuid(), item: "", quantity: "1", rate: "", tax: "" }],
         showTax: t.layout?.columns?.tax !== false,
       });
     } else if (!form.items.length) {
@@ -106,7 +104,8 @@ export default function InvoiceTemplatePage() {
   }
 
   const subtotal = form.items.reduce(
-    (sum, it) => sum + (parseFloat(it.rate) || 0) * (parseFloat(it.quantity) || 0),
+    (sum, it) =>
+      sum + (parseFloat(it.rate) || 0) * (parseFloat(it.quantity) || 0),
     0,
   );
   const taxTotal = form.items.reduce(
@@ -181,11 +180,18 @@ export default function InvoiceTemplatePage() {
 
   function Preview() {
     return (
-      <div className="mx-auto w-full max-w-lg space-y-2 rounded border bg-white p-4">
+      <div
+        className="mx-auto w-full space-y-2 rounded border bg-white p-4"
+        style={{ maxWidth: "190mm" }}
+      >
         <div className="flex justify-between">
           <div>
             {form.logoUrl && (
-              <img src={form.logoUrl} alt="Logo" className="h-16 object-contain" />
+              <img
+                src={form.logoUrl}
+                alt="Logo"
+                className="h-16 object-contain"
+              />
             )}
             <div className="whitespace-pre-wrap text-sm">
               {form.sellerAddress}
@@ -220,7 +226,9 @@ export default function InvoiceTemplatePage() {
                   <td className="py-1">{it.item}</td>
                   <td className="py-1 text-right">{it.quantity}</td>
                   <td className="py-1 text-right">{it.rate}</td>
-                  {form.showTax && <td className="py-1 text-right">{it.tax}</td>}
+                  {form.showTax && (
+                    <td className="py-1 text-right">{it.tax}</td>
+                  )}
                   <td className="py-1 text-right">{sub.toFixed(2)}</td>
                 </tr>
               );
@@ -430,4 +438,3 @@ export default function InvoiceTemplatePage() {
     </div>
   );
 }
-
