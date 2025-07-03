@@ -186,7 +186,7 @@ export default function InvoicesPage() {
       {data && Array.isArray(data.invoices) && data.invoices.length > 0 && (
         <div className="space-y-2">
           {filteredInvoices?.map((inv) => (
-            <Card key={inv.id} className="flex justify-between p-2">
+            <Card key={inv.id} className="flex flex-col gap-2 sm:flex-row sm:justify-between p-2">
               <div>
                 <div className="font-semibold">
                   {inv.contact.name || "Unnamed"}
@@ -201,9 +201,12 @@ export default function InvoicesPage() {
                 </div>
                 <div className="text-sm">Status: {inv.status}</div>
               </div>
-              <div className="flex items-center gap-2">
-                <Link href={`/dashboard/invoices/new?id=${inv.id}`}
-                  className="inline-block">
+              <div className="flex flex-wrap items-center gap-2 justify-end">
+                <Link
+                  href={`/dashboard/invoices/new?id=${inv.id}`}
+                  className="inline-block"
+                  aria-label="Edit invoice"
+                >
                   <Button type="button">Edit</Button>
                 </Link>
                 {inv.status !== "PAID" && (
@@ -236,7 +239,11 @@ export default function InvoicesPage() {
                   </Button>
                 )}
                 {inv.pdfUrl && (
-                  <Button type="button" onClick={() => openPdf(inv.pdfUrl)}>
+                  <Button
+                    type="button"
+                    aria-label="View PDF"
+                    onClick={() => openPdf(inv.pdfUrl)}
+                  >
                     PDF
                   </Button>
                 )}

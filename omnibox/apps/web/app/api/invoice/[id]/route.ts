@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { serverSession } from '@/lib/auth';
 import sgMail from '@sendgrid/mail';
+import { generateInvoicePdf } from '@/lib/invoice';
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 const EMAIL_FROM = process.env.EMAIL_FROM!;
@@ -99,6 +100,28 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: 'Contact has no email' }, { status: 400 });
     }
     const template = await prisma.invoiceTemplate.findFirst({ where: { userId: user.id } });
+    if (!invoice.pdfUrl) {
+      const pdf = await generateInvoicePdf({
+        logoUrl: template?.logoUrl || undefined,
+        header: template?.header || undefined,
+        body: template?.body || undefined,
+        footer: template?.footer || undefined,
+        companyName: template?.companyName || undefined,
+        companyAddress: template?.companyAddress || undefined,
+        notes: template?.notes || undefined,
+        terms: template?.terms || undefined,
+        accentColor: template?.accentColor || undefined,
+        amount: invoice.amount,
+        dueDate: invoice.dueDate.toISOString(),
+        invoiceNumber: invoice.invoiceNumber || undefined,
+        clientName: invoice.contact.name || 'Client',
+      });
+      invoice.pdfUrl = `data:application/pdf;base64,${pdf}`;
+      await prisma.invoice.update({
+        where: { id },
+        data: { pdfUrl: invoice.pdfUrl },
+      });
+    }
     let subject = template?.emailSubject || 'Invoice';
     let text = template?.emailBody || 'Please see attached invoice.';
     const number = invoice.invoiceNumber || invoice.id;
