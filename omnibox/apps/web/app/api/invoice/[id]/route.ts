@@ -10,6 +10,7 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  const { id } = await params;
   const session = await serverSession();
   let email = session?.user?.email ?? 'ee.altuntas@gmail.com';
   const user = await prisma.user.findFirst({ where: { email }, select: { id: true } });
@@ -17,7 +18,7 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const invoice = await prisma.invoice.findFirst({
-    where: { id: params.id, userId: user.id },
+    where: { id, userId: user.id },
     include: { contact: { select: { name: true } } },
   });
   if (!invoice) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -25,6 +26,7 @@ export async function GET(
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = await params;
   const session = await serverSession();
   let email = session?.user?.email ?? 'ee.altuntas@gmail.com';
   const user = await prisma.user.findFirst({ where: { email }, select: { id: true } });
@@ -40,14 +42,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     invoiceNumber?: string;
   };
   const invoice = await prisma.invoice.findFirst({
-    where: { id: params.id, userId: user.id },
+    where: { id, userId: user.id },
     include: { contact: true },
   });
   if (!invoice) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   if (action === 'markPaid') {
     const updated = await prisma.invoice.update({
-      where: { id: params.id },
+      where: { id },
       data: { status: 'PAID' },
     });
     return NextResponse.json({ invoice: updated });
@@ -55,7 +57,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   if (action === 'archive') {
     const updated = await prisma.invoice.update({
-      where: { id: params.id },
+      where: { id },
       data: { status: 'ARCHIVED' },
     });
     return NextResponse.json({ invoice: updated });
@@ -63,7 +65,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   if (action === 'unarchive') {
     const updated = await prisma.invoice.update({
-      where: { id: params.id },
+      where: { id },
       data: { status: 'SENT' },
     });
     return NextResponse.json({ invoice: updated });
@@ -94,7 +96,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ],
     });
     const updated = await prisma.invoice.update({
-      where: { id: params.id },
+      where: { id },
       data: { status: 'SENT' },
     });
     return NextResponse.json({ invoice: updated });
@@ -109,7 +111,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (pdfBase64 !== undefined) {
       data.pdfUrl = pdfBase64.startsWith('data:') ? pdfBase64 : `data:application/pdf;base64,${pdfBase64}`;
     }
-    const updated = await prisma.invoice.update({ where: { id: params.id }, data });
+    const updated = await prisma.invoice.update({ where: { id }, data });
     return NextResponse.json({ invoice: updated });
   }
 
@@ -117,11 +119,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = await params;
   const session = await serverSession();
   let email = session?.user?.email ?? 'ee.altuntas@gmail.com';
   const user = await prisma.user.findFirst({ where: { email }, select: { id: true } });
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  await prisma.invoice.delete({ where: { id: params.id, userId: user.id } });
+  await prisma.invoice.delete({ where: { id, userId: user.id } });
   return NextResponse.json({});
 }
