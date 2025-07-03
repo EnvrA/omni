@@ -1,6 +1,6 @@
+cat > .cpanel.yml << 'EOF'
 ---
 deployment:
   tasks:
-    - npm install
-    - npm run build
-    - cp -r build/. ./
+    - echo "✅  cPanel parsed .cpanel.yml!"
+EOF
