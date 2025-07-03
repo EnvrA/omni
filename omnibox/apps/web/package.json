@@ -19,18 +19,19 @@
     "@prisma/client": "^6.9.0",
     "@repo/ui": "workspace:*",
     "@sendgrid/mail": "^8.1.5",
+    "@tanstack/react-query": "^5.52.0",
     "lucide-react": "0.523.0",
     "next": "^15.3.0",
     "next-auth": "^4.24.11",
+    "pdf-lib": "^1.17.1",
+    "puppeteer": "^24.11.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "resend": "^4.5.2",
     "sonner": "1.0.0",
     "swr": "^2.3.3",
-    "@tanstack/react-query": "^5.52.0",
     "uuid": "^8.3.2",
-    "zod": "^3.22.4",
-    "pdf-lib": "^1.17.1"
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
