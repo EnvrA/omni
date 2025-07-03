@@ -33,13 +33,36 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await req.json();
-  const { action, contactId, amount, dueDate, pdfBase64, invoiceNumber } = body as {
+  const {
+    action,
+    contactId,
+    amount,
+    dueDate,
+    pdfBase64,
+    invoiceNumber,
+    invoiceDate,
+    logoUrl,
+    companyAddress,
+    clientAddress,
+    items,
+    columns,
+    notes,
+    terms,
+  } = body as {
     action?: string;
     contactId?: string;
     amount?: number;
     dueDate?: string;
     pdfBase64?: string;
     invoiceNumber?: string;
+    invoiceDate?: string;
+    logoUrl?: string;
+    companyAddress?: string;
+    clientAddress?: string;
+    items?: any[];
+    columns?: { tax: boolean };
+    notes?: string;
+    terms?: string;
   };
   const invoice = await prisma.invoice.findFirst({
     where: { id, userId: user.id },
@@ -108,9 +131,35 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (invoiceNumber !== undefined) data.invoiceNumber = invoiceNumber;
     if (amount != null) data.amount = amount;
     if (dueDate) data.dueDate = new Date(dueDate);
-    if (pdfBase64 !== undefined) {
-      data.pdfUrl = pdfBase64.startsWith('data:') ? pdfBase64 : `data:application/pdf;base64,${pdfBase64}`;
+
+    let finalPdf = pdfBase64;
+    if (finalPdf === undefined && (items || logoUrl || companyAddress || clientAddress || notes || terms)) {
+      const template = await prisma.invoiceTemplate.findFirst({ where: { userId: user.id } });
+      finalPdf = await generateInvoicePdf({
+        logoUrl: logoUrl ?? template?.logoUrl ?? undefined,
+        header: template?.header || undefined,
+        body: template?.body || undefined,
+        footer: template?.footer || undefined,
+        companyName: template?.companyName || undefined,
+        companyAddress: companyAddress ?? template?.companyAddress ?? undefined,
+        clientAddress: clientAddress ?? undefined,
+        invoiceNumber: invoiceNumber ?? invoice.invoiceNumber ?? undefined,
+        invoiceDate: invoiceDate ?? undefined,
+        notes: notes ?? template?.notes ?? undefined,
+        terms: terms ?? template?.terms ?? undefined,
+        accentColor: template?.accentColor || undefined,
+        items: Array.isArray(items) ? items : undefined,
+        columns: columns ?? undefined,
+        amount: amount ?? invoice.amount,
+        dueDate: dueDate ?? invoice.dueDate.toISOString(),
+        clientName: invoice.contact.name || 'Client',
+      });
     }
+
+    if (finalPdf !== undefined) {
+      data.pdfUrl = finalPdf.startsWith('data:') ? finalPdf : `data:application/pdf;base64,${finalPdf}`;
+    }
+
     const updated = await prisma.invoice.update({ where: { id }, data });
     return NextResponse.json({ invoice: updated });
   }
