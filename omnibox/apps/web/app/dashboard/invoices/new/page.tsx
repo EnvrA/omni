@@ -147,16 +147,22 @@ export default function NewInvoicePage() {
     }
   }, [existing, clients]);
 
-  const idMap = clients?.clients.reduce((acc, c) => {
-    acc[c.name] = c.id;
-    return acc;
-  }, {} as Record<string, string>);
+  const idMap = clients?.clients.reduce(
+    (acc, c) => {
+      acc[c.name] = c.id;
+      return acc;
+    },
+    {} as Record<string, string>,
+  );
 
-  const infoMap = clients?.clients.reduce((acc, c) => {
-    const parts = [c.name, c.company, c.email, c.phone].filter(Boolean);
-    acc[c.name] = parts.join("\n");
-    return acc;
-  }, {} as Record<string, string>);
+  const infoMap = clients?.clients.reduce(
+    (acc, c) => {
+      const parts = [c.name, c.company, c.email, c.phone].filter(Boolean);
+      acc[c.name] = parts.join("\n");
+      return acc;
+    },
+    {} as Record<string, string>,
+  );
 
   function updateItem(id: string, field: keyof LineItem, value: string) {
     setForm((f) => ({
@@ -225,7 +231,9 @@ export default function NewInvoicePage() {
       }),
     });
     if (!res.ok) {
-      toast.error(invoiceId ? "Failed to update invoice" : "Failed to create invoice");
+      toast.error(
+        invoiceId ? "Failed to update invoice" : "Failed to create invoice",
+      );
       return;
     }
     toast.success(invoiceId ? "Invoice updated" : "Invoice created");
@@ -234,7 +242,10 @@ export default function NewInvoicePage() {
 
   function Preview() {
     return (
-      <div className="mx-auto w-full max-w-lg space-y-2 rounded border bg-white p-4">
+      <div
+        className="mx-auto w-full space-y-2 rounded border bg-white p-4"
+        style={{ maxWidth: "190mm" }}
+      >
         <div className="flex justify-between">
           <div>
             {form.logoUrl && (
@@ -260,8 +271,8 @@ export default function NewInvoicePage() {
         </div>
         <table className="mt-2 w-full text-sm table-fixed">
           <colgroup>
-            <col style={{ width: '20%' }} />
-            <col style={{ width: '40%' }} />
+            <col style={{ width: "20%" }} />
+            <col style={{ width: "40%" }} />
             <col style={{ width: `${smallColWidth}%` }} />
             <col style={{ width: `${smallColWidth}%` }} />
             {form.showTax && <col style={{ width: `${smallColWidth}%` }} />}
@@ -400,8 +411,8 @@ export default function NewInvoicePage() {
           <div className="font-semibold">Line Items</div>
           <table className="w-full text-sm table-fixed">
             <colgroup>
-              <col style={{ width: '20%' }} />
-              <col style={{ width: '40%' }} />
+              <col style={{ width: "20%" }} />
+              <col style={{ width: "40%" }} />
               <col style={{ width: `${smallColWidth}%` }} />
               <col style={{ width: `${smallColWidth}%` }} />
               {form.showTax && <col style={{ width: `${smallColWidth}%` }} />}

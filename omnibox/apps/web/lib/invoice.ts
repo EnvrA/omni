@@ -78,9 +78,9 @@ function buildInvoiceHtml(data: InvoiceData) {
     })
     .join("");
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>
-    @page{size:A4;margin:0.5in;}
+    @page{size:A4;margin:10mm;}
     body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:0;-webkit-print-color-adjust:exact;}
-    .container{width:100%;margin:0 auto;background:#fff;border:1px solid #ccc;border-radius:6px;padding:16px;}
+    .container{box-sizing:border-box;width:100%;max-width:100%;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px;}
     .flex{display:flex;justify-content:space-between;}
     .info{font-size:14px;margin-top:8px;}
     .whitespace-pre-wrap{white-space:pre-wrap;}
@@ -147,12 +147,13 @@ function buildInvoiceHtml(data: InvoiceData) {
 export async function generateInvoicePdf(data: InvoiceData) {
   const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
   const page = await browser.newPage();
-  await page.emulateMediaType("screen");
+  await page.emulateMediaType("print");
   await page.setContent(buildInvoiceHtml(data), { waitUntil: "networkidle0" });
   const pdf = await page.pdf({
     printBackground: true,
-    preferCSSPageSize: true,
-    margin: { top: "0", right: "0", bottom: "0", left: "0" },
+    format: "A4",
+    scale: 1,
+    margin: { top: "10mm", right: "10mm", bottom: "10mm", left: "10mm" },
   });
   await browser.close();
   return Buffer.from(pdf).toString("base64");
