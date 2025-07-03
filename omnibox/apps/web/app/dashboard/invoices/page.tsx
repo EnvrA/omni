@@ -94,9 +94,16 @@ export default function InvoicesPage() {
   }
 
   function openPdf(url: string) {
-    // The stored PDF is a data URL, so opening it directly is simpler and
-    // avoids issues with manual base64 decoding.
-    window.open(url, "_blank");
+    // Decode the base64 data and open using a Blob to improve compatibility
+    const base64 = url.includes(',') ? url.split(',')[1] : url;
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blobUrl = URL.createObjectURL(
+      new Blob([bytes], { type: "application/pdf" }),
+    );
+    window.open(blobUrl, "_blank");
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
   }
 
   const filteredInvoices = data?.invoices.filter((inv) => {

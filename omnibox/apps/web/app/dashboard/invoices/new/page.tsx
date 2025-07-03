@@ -129,13 +129,18 @@ export default function NewInvoicePage() {
   useEffect(() => {
     if (existing?.invoice) {
       const inv = existing.invoice;
-      const name =
-        clients?.clients.find((c) => c.id === inv.contactId)?.name ||
-        inv.contact?.name;
+      const client = clients?.clients.find((c) => c.id === inv.contactId);
+      const name = client?.name || inv.contact?.name;
+      const buyerInfo = client
+        ? [client.name, client.company, client.email, client.phone]
+            .filter(Boolean)
+            .join("\n")
+        : undefined;
       setForm((f) => ({
         ...f,
         clientId: inv.contactId,
         clientName: name || f.clientName,
+        buyerAddress: buyerInfo ?? f.buyerAddress,
         invoiceNumber: inv.invoiceNumber || f.invoiceNumber,
         dueDate: inv.dueDate.split("T")[0],
       }));
