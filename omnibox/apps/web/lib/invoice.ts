@@ -1,4 +1,4 @@
-import puppeteer from 'puppeteer';
+import puppeteer from "puppeteer";
 
 export interface LineItem {
   item: string;
@@ -31,18 +31,18 @@ export interface InvoiceData {
 }
 
 function escapeHtml(value?: string) {
-  return (value || '').replace(/[&<>"']/g, (c) => {
+  return (value || "").replace(/[&<>"']/g, (c) => {
     switch (c) {
-      case '&':
-        return '&amp;';
-      case '<':
-        return '&lt;';
-      case '>':
-        return '&gt;';
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
       case '"':
-        return '&quot;';
+        return "&quot;";
       default:
-        return '&#39;';
+        return "&#39;";
     }
   });
 }
@@ -52,13 +52,16 @@ function buildInvoiceHtml(data: InvoiceData) {
   const smallColWidth = 40 / (showTax ? 4 : 3);
   const items = data.items || [];
   const subtotal = items.reduce(
-    (sum, it) => sum + (parseFloat(it.rate) || 0) * (parseFloat(it.quantity) || 0),
+    (sum, it) =>
+      sum + (parseFloat(it.rate) || 0) * (parseFloat(it.quantity) || 0),
     0,
   );
   const taxTotal = items.reduce(
     (sum, it) =>
       sum +
-      (parseFloat(it.rate) || 0) * (parseFloat(it.quantity) || 0) * ((parseFloat(it.tax) || 0) / 100),
+      (parseFloat(it.rate) || 0) *
+        (parseFloat(it.quantity) || 0) *
+        ((parseFloat(it.tax) || 0) / 100),
     0,
   );
   const total = subtotal + taxTotal;
@@ -70,17 +73,18 @@ function buildInvoiceHtml(data: InvoiceData) {
       )}</td><td class="text-right">${escapeHtml(it.quantity)}</td><td class="text-right">${escapeHtml(
         it.rate,
       )}</td>${
-        showTax ? `<td class="text-right">${escapeHtml(it.tax)}</td>` : ''
+        showTax ? `<td class="text-right">${escapeHtml(it.tax)}</td>` : ""
       }<td class="text-right">${sub.toFixed(2)}</td></tr>`;
     })
-    .join('');
+    .join("");
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>
-    @page{size:A4;margin:20mm;}
+    @page{size:A4;margin:0.5in;}
     body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:0;-webkit-print-color-adjust:exact;}
-    .container{width:100%;max-width:512px;margin:0 auto;background:#fff;border:1px solid #ccc;border-radius:6px;padding:16px;}
+    .container{width:100%;margin:0 auto;background:#fff;border:1px solid #ccc;border-radius:6px;padding:16px;}
     .flex{display:flex;justify-content:space-between;}
     .info{font-size:14px;margin-top:8px;}
     .whitespace-pre-wrap{white-space:pre-wrap;}
+    .description{white-space:pre-wrap;word-wrap:break-word;}
     table{width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed;margin-top:8px;}
     th,td{padding:4px;border-bottom:1px solid #ddd;}
     th{text-align:left;}
@@ -95,7 +99,7 @@ function buildInvoiceHtml(data: InvoiceData) {
   <div class="container">
     <div class="flex">
       <div>
-        ${data.logoUrl ? `<img src="${data.logoUrl}" class="logo"/>` : ''}
+        ${data.logoUrl ? `<img src="${data.logoUrl}" class="logo"/>` : ""}
         <div class="info whitespace-pre-wrap">${escapeHtml(data.companyAddress)}</div>
       </div>
     </div>
@@ -104,9 +108,9 @@ function buildInvoiceHtml(data: InvoiceData) {
       <div class="whitespace-pre-wrap">${escapeHtml(data.clientAddress)}</div>
     </div>
     <div class="info flex" style="gap:16px;flex-wrap:wrap;">
-      ${data.invoiceNumber ? `<div>Invoice #: ${escapeHtml(data.invoiceNumber)}</div>` : ''}
-      ${data.invoiceDate ? `<div>Invoice Date: ${escapeHtml(data.invoiceDate)}</div>` : ''}
-      ${data.dueDate ? `<div>Due Date: ${escapeHtml(data.dueDate)}</div>` : ''}
+      ${data.invoiceNumber ? `<div>Invoice #: ${escapeHtml(data.invoiceNumber)}</div>` : ""}
+      ${data.invoiceDate ? `<div>Invoice Date: ${escapeHtml(data.invoiceDate)}</div>` : ""}
+      ${data.dueDate ? `<div>Due Date: ${escapeHtml(data.dueDate)}</div>` : ""}
     </div>
     <table>
       <colgroup>
@@ -114,7 +118,7 @@ function buildInvoiceHtml(data: InvoiceData) {
         <col style="width:40%" />
         <col style="width:${smallColWidth}%" />
         <col style="width:${smallColWidth}%" />
-        ${showTax ? `<col style="width:${smallColWidth}%" />` : ''}
+        ${showTax ? `<col style="width:${smallColWidth}%" />` : ""}
         <col style="width:${smallColWidth}%" />
       </colgroup>
       <thead>
@@ -123,7 +127,7 @@ function buildInvoiceHtml(data: InvoiceData) {
           <th>Description</th>
           <th>Qty</th>
           <th>Rate</th>
-          ${showTax ? '<th>Tax %</th>' : ''}
+          ${showTax ? "<th>Tax %</th>" : ""}
           <th class="text-right">Subtotal</th>
         </tr>
       </thead>
@@ -131,22 +135,25 @@ function buildInvoiceHtml(data: InvoiceData) {
     </table>
     <div class="totals"><div class="totals-inner">
       <div><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
-      ${showTax ? `<div><span>Tax</span><span>${taxTotal.toFixed(2)}</span></div>` : ''}
+      ${showTax ? `<div><span>Tax</span><span>${taxTotal.toFixed(2)}</span></div>` : ""}
       <div class="font-semibold"><span>Total</span><span>${total.toFixed(2)}</span></div>
     </div></div>
-    ${data.notes ? `<div class="notes">${escapeHtml(data.notes)}</div>` : ''}
-    ${data.terms ? `<div class="terms">${escapeHtml(data.terms)}</div>` : ''}
+    ${data.notes ? `<div class="notes">${escapeHtml(data.notes)}</div>` : ""}
+    ${data.terms ? `<div class="terms">${escapeHtml(data.terms)}</div>` : ""}
   </div>
   </body></html>`;
 }
 
 export async function generateInvoicePdf(data: InvoiceData) {
-  const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+  const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
   const page = await browser.newPage();
-  await page.emulateMediaType('screen');
-  await page.setContent(buildInvoiceHtml(data), { waitUntil: 'networkidle0' });
-  const pdf = await page.pdf({ printBackground: true, preferCSSPageSize: true });
+  await page.emulateMediaType("screen");
+  await page.setContent(buildInvoiceHtml(data), { waitUntil: "networkidle0" });
+  const pdf = await page.pdf({
+    printBackground: true,
+    preferCSSPageSize: true,
+    margin: { top: "0", right: "0", bottom: "0", left: "0" },
+  });
   await browser.close();
-  return Buffer.from(pdf).toString('base64');
+  return Buffer.from(pdf).toString("base64");
 }
-
