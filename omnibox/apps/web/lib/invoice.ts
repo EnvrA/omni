@@ -75,8 +75,9 @@ function buildInvoiceHtml(data: InvoiceData) {
     })
     .join('');
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>
-    body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:0;}
-    .container{max-width:512px;margin:0 auto;background:#fff;border:1px solid #ccc;border-radius:6px;padding:16px;}
+    @page{size:A4;margin:20mm;}
+    body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:0;-webkit-print-color-adjust:exact;}
+    .container{width:100%;max-width:512px;margin:0 auto;background:#fff;border:1px solid #ccc;border-radius:6px;padding:16px;}
     .flex{display:flex;justify-content:space-between;}
     .info{font-size:14px;margin-top:8px;}
     .whitespace-pre-wrap{white-space:pre-wrap;}
@@ -142,6 +143,7 @@ function buildInvoiceHtml(data: InvoiceData) {
 export async function generateInvoicePdf(data: InvoiceData) {
   const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
   const page = await browser.newPage();
+  await page.emulateMediaType('screen');
   await page.setContent(buildInvoiceHtml(data), { waitUntil: 'networkidle0' });
   const pdf = await page.pdf({ printBackground: true, preferCSSPageSize: true });
   await browser.close();
