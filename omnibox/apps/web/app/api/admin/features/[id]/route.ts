@@ -4,7 +4,7 @@ import { FLAGS } from "../route";
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } },
+  { params },
 ) {
   const session = await serverSession();
   if (!session || session.user?.email !== process.env.ADMIN_EMAIL) {
