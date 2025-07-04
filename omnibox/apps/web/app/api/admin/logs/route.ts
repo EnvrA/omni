@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { serverSession } from "@/lib/auth";
-
-export let LOGS: {
-  id: string;
-  timestamp: string;
-  message: string;
-  resolved: boolean;
-}[] = [];
+import { LOGS } from "@/lib/admin-data";
 
 export async function GET(req: NextRequest) {
   const session = await serverSession();

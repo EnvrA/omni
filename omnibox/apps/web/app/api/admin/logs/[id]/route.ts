@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { serverSession } from "@/lib/auth";
-import { LOGS } from "../route";
+import { LOGS } from "@/lib/admin-data";
 
 export async function POST(
   req: NextRequest,
