@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { AppRouteHandlerFnContext } from "next/dist/server/route-modules/app-route/module";
+type RouteContext = { params: { id: string } };
 import prisma from "@/lib/prisma";
 import { serverSession } from "@/lib/auth";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: AppRouteHandlerFnContext,
+  { params }: RouteContext,
 ) {
   const { id } = (await params) as { id: string };
   const session = await serverSession();
@@ -25,7 +25,7 @@ export async function PATCH(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: AppRouteHandlerFnContext,
+  { params }: RouteContext,
 ) {
   const { id } = (await params) as { id: string };
   const session = await serverSession();

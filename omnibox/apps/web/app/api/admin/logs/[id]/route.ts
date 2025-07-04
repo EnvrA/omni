@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { AppRouteHandlerFnContext } from "next/dist/server/route-modules/app-route/module";
+type RouteContext = { params: { id: string } };
 import { serverSession } from "@/lib/auth";
 import { LOGS } from "@/lib/admin-data";
 
 export async function POST(
   req: NextRequest,
-  { params }: AppRouteHandlerFnContext,
+  { params }: RouteContext,
 ) {
   const { id } = (await params) as { id: string };
   const session = await serverSession();
