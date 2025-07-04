@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-type RouteContext = { params: { id: string } };
 import prisma from '@/lib/prisma';
 import { serverSession } from '@/lib/auth';
 import sgMail from '@sendgrid/mail';
@@ -10,9 +9,9 @@ const EMAIL_FROM = process.env.EMAIL_FROM!;
 
 export async function GET(
   _req: NextRequest,
-  { params }: RouteContext,
+  { params }: { params: { id: string } },
 ) {
-  const { id } = (await params) as { id: string };
+  const { id } = params;
   const session = await serverSession();
   let email = session?.user?.email ?? 'ee.altuntas@gmail.com';
   const user = await prisma.user.findFirst({ where: { email }, select: { id: true } });
@@ -29,9 +28,9 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: RouteContext,
+  { params }: { params: { id: string } },
 ) {
-  const { id } = (await params) as { id: string };
+  const { id } = params;
   const session = await serverSession();
   let email = session?.user?.email ?? 'ee.altuntas@gmail.com';
   const user = await prisma.user.findFirst({ where: { email }, select: { id: true } });
@@ -196,9 +195,9 @@ export async function PATCH(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: RouteContext,
+  { params }: { params: { id: string } },
 ) {
-  const { id } = (await params) as { id: string };
+  const { id } = params;
   const session = await serverSession();
   let email = session?.user?.email ?? 'ee.altuntas@gmail.com';
   const user = await prisma.user.findFirst({ where: { email }, select: { id: true } });
