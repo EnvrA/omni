@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { serverSession } from "@/lib/auth";
-import { TEMPLATES } from "../features/route";
+import { TEMPLATES } from "@/lib/admin-data";
 
 export async function POST(req: NextRequest) {
   const session = await serverSession();

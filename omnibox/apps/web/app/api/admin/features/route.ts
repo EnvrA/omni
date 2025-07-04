@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { serverSession } from "@/lib/auth";
-
-let FLAGS: { id: string; name: string; enabled: boolean }[] = [
-  { id: "beta", name: "Beta Features", enabled: false },
-  { id: "new-ui", name: "New UI", enabled: false },
-];
-let TEMPLATES: { id: string; text: string }[] = [];
+import { FLAGS, TEMPLATES } from "@/lib/admin-data";
 
 export async function GET() {
   const session = await serverSession();
@@ -26,4 +21,3 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true });
 }
 
-export { FLAGS, TEMPLATES };
