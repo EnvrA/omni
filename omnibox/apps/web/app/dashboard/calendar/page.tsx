@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { v4 as uuid } from "uuid";
 import { Input, Button, Card } from "@/components/ui";
 import { toast } from "sonner";
-import { useTags } from "@/components/tags-context";
+import { useTags } from "@/components";
 
 interface Deal {
   id: string;

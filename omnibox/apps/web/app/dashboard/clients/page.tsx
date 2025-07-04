@@ -4,8 +4,7 @@ import useSWR from "swr";
 import { useState } from "react";
 import { Input, Button, Card, Avatar, Badge, Textarea } from "@/components/ui";
 import { toast } from "sonner";
-import { useTags } from "@/components/tags-context";
-import { TagManager } from "@/components/tag-manager";
+import { useTags, TagManager } from "@/components";
 import { Edit3, Trash, Mail, Phone, MessageCircle } from "lucide-react";
 
 const fetcher = async (url: string) => {
