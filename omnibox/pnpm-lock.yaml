@@ -60,9 +60,6 @@ importers:
       react-dom:
         specifier: ^19.1.0
         version: 19.1.0(react@19.1.0)
-      sonner:
-        specifier: 2.0.6
-        version: 2.0.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     devDependencies:
       '@repo/eslint-config':
         specifier: workspace:*
@@ -190,10 +187,6 @@ importers:
         version: 5.8.2
 
   packages/eslint-config:
-    dependencies:
-      sonner:
-        specifier: 2.0.6
-        version: 2.0.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     devDependencies:
       '@eslint/js':
         specifier: ^9.28.0
@@ -229,11 +222,7 @@ importers:
         specifier: ^8.33.0
         version: 8.34.0(eslint@9.29.0(jiti@2.4.2))(typescript@5.8.2)
 
-  packages/typescript-config:
-    dependencies:
-      sonner:
-        specifier: 2.0.6
-        version: 2.0.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+  packages/typescript-config: {}
 
   packages/ui:
     dependencies:
@@ -243,9 +232,6 @@ importers:
       react-dom:
         specifier: ^19.1.0
         version: 19.1.0(react@19.1.0)
-      sonner:
-        specifier: 2.0.6
-        version: 2.0.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
     devDependencies:
       '@repo/eslint-config':
         specifier: workspace:*
