@@ -11,8 +11,7 @@ import {
 import { arrayMove } from "@dnd-kit/sortable";
 import { Card, Button, Input, Textarea } from "@/components/ui";
 import { toast } from "sonner";
-import { useTags } from "@/components/tags-context";
-import { TagManager } from "@/components/tag-manager";
+import { useTags, TagManager } from "@/components";
 
 // Robust fetcher handles non-JSON errors gracefully
 const fetcher = async (url: string) => {
