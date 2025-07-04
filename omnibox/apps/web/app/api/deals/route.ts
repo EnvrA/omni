@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { serverSession } from "@/lib/auth";
 
@@ -19,7 +19,7 @@ export async function GET() {
   return NextResponse.json({ deals });
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const session = await serverSession();
   let email = session?.user?.email ?? "ee.altuntas@gmail.com";
 

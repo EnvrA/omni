@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { AppRouteHandlerFnContext } from "next/dist/server/route-modules/app-route/module";
 import prisma from "@/lib/prisma";
 import { serverSession } from "@/lib/auth";
 
 export async function PATCH(
   req: NextRequest,
-  context: { params: { id: string } },
+  { params }: AppRouteHandlerFnContext,
 ) {
-  const { id } = context.params;
+  const { id } = (await params) as { id: string };
   const session = await serverSession();
   let email = session?.user?.email ?? "ee.altuntas@gmail.com";
   const user = await prisma.user.findFirst({ where: { email }, select: { id: true } });
@@ -24,9 +25,9 @@ export async function PATCH(
 
 export async function DELETE(
   _req: NextRequest,
-  context: { params: { id: string } },
+  { params }: AppRouteHandlerFnContext,
 ) {
-  const { id } = context.params;
+  const { id } = (await params) as { id: string };
   const session = await serverSession();
   let email = session?.user?.email ?? "ee.altuntas@gmail.com";
   const user = await prisma.user.findFirst({ where: { email }, select: { id: true } });
