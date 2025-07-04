@@ -9,9 +9,9 @@ const EMAIL_FROM = process.env.EMAIL_FROM!;
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: { id: string } },
 ) {
-  const { id } = await params;
+  const { id } = context.params;
   const session = await serverSession();
   let email = session?.user?.email ?? 'ee.altuntas@gmail.com';
   const user = await prisma.user.findFirst({ where: { email }, select: { id: true } });
@@ -26,8 +26,11 @@ export async function GET(
   return NextResponse.json({ invoice });
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = await params;
+export async function PATCH(
+  req: NextRequest,
+  context: { params: { id: string } },
+) {
+  const { id } = context.params;
   const session = await serverSession();
   let email = session?.user?.email ?? 'ee.altuntas@gmail.com';
   const user = await prisma.user.findFirst({ where: { email }, select: { id: true } });
@@ -190,8 +193,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json({ invoice });
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = await params;
+export async function DELETE(
+  _req: NextRequest,
+  context: { params: { id: string } },
+) {
+  const { id } = context.params;
   const session = await serverSession();
   let email = session?.user?.email ?? 'ee.altuntas@gmail.com';
   const user = await prisma.user.findFirst({ where: { email }, select: { id: true } });

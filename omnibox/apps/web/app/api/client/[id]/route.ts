@@ -5,8 +5,9 @@ import { Prisma } from "@prisma/client";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: { id: string } },
 ) {
+  const { id } = context.params;
   const session = await serverSession();
   let email = session?.user?.email ?? "ee.altuntas@gmail.com";
   const user = await prisma.user.findFirst({
@@ -35,7 +36,6 @@ export async function PATCH(
     avatar?: string;
   };
 
-  const { id } = await params;
   try {
     const client = await prisma.contact.update({
       where: { id, userId: user.id },
@@ -59,8 +59,9 @@ export async function PATCH(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: { id: string } },
 ) {
+  const { id } = context.params;
   const session = await serverSession();
   let email = session?.user?.email ?? "ee.altuntas@gmail.com";
   const user = await prisma.user.findFirst({
@@ -70,7 +71,6 @@ export async function DELETE(
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id } = await params;
   await prisma.deal.deleteMany({ where: { contactId: id, userId: user.id } });
   await prisma.contact.delete({ where: { id, userId: user.id } });
 
