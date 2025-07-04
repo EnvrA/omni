@@ -199,7 +199,6 @@ function StageColumn({
     listeners: colListeners,
     setNodeRef: setDragRef,
     transform: colTransform,
-    transition: colTransition,
   } = useDraggable({
     id: `column-${stage}`,
     data: { column: stage, type: "column" },
@@ -211,9 +210,8 @@ function StageColumn({
   const style = colTransform
     ? {
         transform: `translate3d(${colTransform.x}px, ${colTransform.y}px, 0)`,
-        transition: colTransition,
       }
-    : { transition: colTransition };
+    : undefined;
   const [editing, setEditing] = useState(false);
   const [tempName, setTempName] = useState(name);
   return (

@@ -1,7 +1,7 @@
 "use client";
 import useSWR from "swr";
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Input, Button, Textarea } from "@/components/ui";
 import { toast } from "sonner";
 import { v4 as uuid } from "uuid";
@@ -27,8 +27,11 @@ const fetcher = async (url: string) => {
 
 export default function NewInvoicePage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const invoiceId = searchParams.get("id");
+  const [invoiceId, setInvoiceId] = useState<string | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setInvoiceId(params.get("id"));
+  }, []);
   const { data: template } = useSWR<{ template: any }>(
     "/api/invoice/template",
     fetcher,

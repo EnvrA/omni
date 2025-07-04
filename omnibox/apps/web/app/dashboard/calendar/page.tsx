@@ -28,6 +28,7 @@ interface Appointment {
 interface Client {
   id: string;
   name: string | null;
+  tag: string | null;
 }
 
 const fetcher = async (url: string) => {
@@ -104,7 +105,7 @@ export default function CalendarPage() {
         type: "Deal Deadline" as const,
         id: d.id,
         title: extras[d.id]?.title || d.contact.name || "Deal",
-        date: extras[d.id].deadline!,
+        date: extras[d.id]?.deadline!,
         clientId: d.contact.id,
       })),
   ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());

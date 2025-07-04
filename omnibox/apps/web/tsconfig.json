@@ -7,7 +7,7 @@
     "baseUrl": ".",            
     "paths": { "@/*": ["./*"] },
 
-    "types": ["node", "./types/sonner"]
+    "types": ["node"]
   },
   "include": [
     "**/*.ts",
