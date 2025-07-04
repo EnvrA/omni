@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { AppRouteHandlerFnContext } from 'next/dist/server/route-modules/app-route/module';
+type RouteContext = { params: { id: string } };
 import prisma from '@/lib/prisma';
 import { serverSession } from '@/lib/auth';
 import sgMail from '@sendgrid/mail';
@@ -10,7 +10,7 @@ const EMAIL_FROM = process.env.EMAIL_FROM!;
 
 export async function GET(
   _req: NextRequest,
-  { params }: AppRouteHandlerFnContext,
+  { params }: RouteContext,
 ) {
   const { id } = (await params) as { id: string };
   const session = await serverSession();
@@ -29,7 +29,7 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: AppRouteHandlerFnContext,
+  { params }: RouteContext,
 ) {
   const { id } = (await params) as { id: string };
   const session = await serverSession();
@@ -196,7 +196,7 @@ export async function PATCH(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: AppRouteHandlerFnContext,
+  { params }: RouteContext,
 ) {
   const { id } = (await params) as { id: string };
   const session = await serverSession();
