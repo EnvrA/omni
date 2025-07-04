@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { Provider } from "@prisma/client";
 import { upsertContactAndMessage, type EmailWebhook } from "../../../../lib/webhooks";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const form = await req.formData();
   const payload: EmailWebhook = {
     from: (form.get("from") as string) || "",
