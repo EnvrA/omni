@@ -4,9 +4,9 @@ import { LOGS } from "@/lib/admin-data";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: any,
 ) {
-  const { id } = params;
+  const { id } = (await params) as { id: string };
   const session = await serverSession();
   if (!session || session.user?.email !== process.env.ADMIN_EMAIL) {
     return new NextResponse("Unauthorized", { status: 401 });
