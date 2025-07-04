@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-type RouteContext = { params: { id: string } };
 import { serverSession } from "@/lib/auth";
 import { LOGS } from "@/lib/admin-data";
 
 export async function POST(
   req: NextRequest,
-  { params }: RouteContext,
+  { params }: { params: { id: string } },
 ) {
-  const { id } = (await params) as { id: string };
+  const { id } = params;
   const session = await serverSession();
   if (!session || session.user?.email !== process.env.ADMIN_EMAIL) {
     return new NextResponse("Unauthorized", { status: 401 });
