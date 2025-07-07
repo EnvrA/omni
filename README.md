@@ -23,6 +23,18 @@ npx prisma generate
 ```
 to update your database and regenerate the Prisma client.
 
+## Environment variables
+
+Before running the application you must provide several variables so the server
+can connect to external services:
+
+- `DATABASE_URL` – PostgreSQL connection string used by Prisma
+- `SENDGRID_API_KEY` – API key for sending email based sign-in links
+- `EMAIL_FROM` – address emails are sent from
+- `ADMIN_EMAIL` – email allowed to access admin endpoints
+
+Set these variables in your Vercel project or a local `.env` file.
+
 ## Workflow
 
 Write clear commit messages that briefly describe what your change does. For example:
