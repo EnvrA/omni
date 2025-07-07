@@ -1,31 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
+import { v4 as uuidv4 } from "uuid";
 import { Button, Input } from "@/components/ui";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function PackagesPage() {
   const { data, mutate } = useSWR("/api/admin/packages", fetcher);
-  const [editing, setEditing] = useState<Record<string, any>>({});
+  const [pkgs, setPkgs] = useState<any[]>([]);
 
-  if (!data) return null;
-
-  const pkgs = data.packages as any[];
+  useEffect(() => {
+    if (data) setPkgs(data.packages);
+  }, [data]);
 
   function handleChange(id: string, field: string, value: string) {
-    setEditing((e) => ({ ...e, [id]: { ...e[id], [field]: value } }));
+    setPkgs((p) => p.map((pkg) => (pkg.id === id ? { ...pkg, [field]: value } : pkg)));
   }
 
   async function save(pkg: any) {
     await fetch("/api/admin/packages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...pkg, ...editing[pkg.id] }),
+      body: JSON.stringify(pkg),
     });
-    setEditing((e) => ({ ...e, [pkg.id]: undefined }));
     mutate();
+  }
+
+  function addPackage() {
+    setPkgs((p) => [
+      ...p,
+      {
+        id: uuidv4(),
+        name: "",
+        contactsLimit: 0,
+        dealsLimit: 0,
+        messagingLimit: 0,
+        invoicingLimit: 0,
+        revenueReportingLimit: 0,
+        segmentingLimit: 0,
+        monthlyPrice: 0,
+        yearlyPrice: 0,
+      },
+    ]);
   }
 
   return (
@@ -34,6 +52,7 @@ export default function PackagesPage() {
       <p className="text-sm text-gray-500">
         Manage subscription packages here.
       </p>
+      <Button onClick={addPackage}>Add Package</Button>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -45,26 +64,25 @@ export default function PackagesPage() {
               <th className="p-2">Invoices</th>
               <th className="p-2">Revenue</th>
               <th className="p-2">Segments</th>
+              <th className="p-2">Monthly</th>
+              <th className="p-2">Yearly</th>
               <th className="p-2" />
             </tr>
           </thead>
           <tbody>
             {pkgs.map((p) => {
-              const edit = editing[p.id] || {};
               return (
                 <tr key={p.id} className="border-t">
                   <td className="p-2">
                     <Input
-                      value={edit.name ?? p.name}
-                      onChange={(e) =>
-                        handleChange(p.id, "name", e.target.value)
-                      }
+                      value={p.name}
+                      onChange={(e) => handleChange(p.id, "name", e.target.value)}
                     />
                   </td>
                   <td className="p-2">
                     <Input
                       type="number"
-                      value={edit.contactsLimit ?? p.contactsLimit}
+                      value={p.contactsLimit}
                       onChange={(e) =>
                         handleChange(p.id, "contactsLimit", e.target.value)
                       }
@@ -73,7 +91,7 @@ export default function PackagesPage() {
                   <td className="p-2">
                     <Input
                       type="number"
-                      value={edit.dealsLimit ?? p.dealsLimit}
+                      value={p.dealsLimit}
                       onChange={(e) =>
                         handleChange(p.id, "dealsLimit", e.target.value)
                       }
@@ -82,7 +100,7 @@ export default function PackagesPage() {
                   <td className="p-2">
                     <Input
                       type="number"
-                      value={edit.messagingLimit ?? p.messagingLimit}
+                      value={p.messagingLimit}
                       onChange={(e) =>
                         handleChange(p.id, "messagingLimit", e.target.value)
                       }
@@ -91,7 +109,7 @@ export default function PackagesPage() {
                   <td className="p-2">
                     <Input
                       type="number"
-                      value={edit.invoicingLimit ?? p.invoicingLimit}
+                      value={p.invoicingLimit}
                       onChange={(e) =>
                         handleChange(p.id, "invoicingLimit", e.target.value)
                       }
@@ -100,24 +118,36 @@ export default function PackagesPage() {
                   <td className="p-2">
                     <Input
                       type="number"
-                      value={
-                        edit.revenueReportingLimit ?? p.revenueReportingLimit
-                      }
+                      value={p.revenueReportingLimit}
                       onChange={(e) =>
-                        handleChange(
-                          p.id,
-                          "revenueReportingLimit",
-                          e.target.value,
-                        )
+                        handleChange(p.id, "revenueReportingLimit", e.target.value)
                       }
                     />
                   </td>
                   <td className="p-2">
                     <Input
                       type="number"
-                      value={edit.segmentingLimit ?? p.segmentingLimit}
+                      value={p.segmentingLimit}
                       onChange={(e) =>
                         handleChange(p.id, "segmentingLimit", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td className="p-2">
+                    <Input
+                      type="number"
+                      value={p.monthlyPrice}
+                      onChange={(e) =>
+                        handleChange(p.id, "monthlyPrice", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td className="p-2">
+                    <Input
+                      type="number"
+                      value={p.yearlyPrice}
+                      onChange={(e) =>
+                        handleChange(p.id, "yearlyPrice", e.target.value)
                       }
                     />
                   </td>

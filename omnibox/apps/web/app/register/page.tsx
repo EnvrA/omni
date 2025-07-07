@@ -30,7 +30,7 @@ export default async function RegisterPage() {
             <h2 className="text-lg font-semibold">General Infomation</h2>
             <input
               type="text"
-              placeholder="Company"
+              placeholder="Company Name"
               className="w-full bg-transparent border-b border-gray-300 p-3 placeholder-gray-400 text-sm focus:outline-none"
             />
             <input
@@ -63,13 +63,16 @@ export default async function RegisterPage() {
               />
             </div>
             <div className="flex gap-4">
-              <select
-                className="w-full bg-transparent border-b border-gray-300 p-3 text-sm text-gray-500 focus:outline-none"
-              >
-                {EMPLOYEES.map((e) => (
-                  <option key={e}>{e}</option>
-                ))}
-              </select>
+              <label className="w-full text-sm text-gray-600">
+                <span className="mb-1 block">Company Size</span>
+                <select
+                  className="w-full bg-transparent border-b border-gray-300 p-3 text-sm text-gray-500 focus:outline-none"
+                >
+                  {EMPLOYEES.map((e) => (
+                    <option key={e}>{e}</option>
+                  ))}
+                </select>
+              </label>
             </div>
           </form>
           <form className="bg-[#4e5cf8] text-white p-8 space-y-6">

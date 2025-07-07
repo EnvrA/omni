@@ -25,6 +25,8 @@ export type Package = {
   invoicingLimit: number;
   revenueReportingLimit: number;
   segmentingLimit: number;
+  monthlyPrice: number;
+  yearlyPrice: number;
 };
 
 export const PACKAGES: Package[] = [
@@ -37,6 +39,8 @@ export const PACKAGES: Package[] = [
     invoicingLimit: 10,
     revenueReportingLimit: 0,
     segmentingLimit: 0,
+    monthlyPrice: 10,
+    yearlyPrice: 100,
   },
   {
     id: "pro",
@@ -47,6 +51,8 @@ export const PACKAGES: Package[] = [
     invoicingLimit: 50,
     revenueReportingLimit: 50,
     segmentingLimit: 10,
+    monthlyPrice: 20,
+    yearlyPrice: 200,
   },
   {
     id: "enterprise",
@@ -57,5 +63,7 @@ export const PACKAGES: Package[] = [
     invoicingLimit: 500,
     revenueReportingLimit: 100,
     segmentingLimit: 50,
+    monthlyPrice: 50,
+    yearlyPrice: 500,
   },
 ];
