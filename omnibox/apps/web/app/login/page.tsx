@@ -1,7 +1,8 @@
 import { serverSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import SignInPage from "../signin/page";
 
-export default async function HomePage() {
+export default async function LoginPage() {
   const session = await serverSession();
   if (session) {
     const email = session.user?.email ?? "";
@@ -11,5 +12,5 @@ export default async function HomePage() {
       redirect("/dashboard");
     }
   }
-  redirect("/register");
+  return <SignInPage />;
 }
