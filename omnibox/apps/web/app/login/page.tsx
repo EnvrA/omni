@@ -1,6 +1,6 @@
 import { serverSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import SignInPage from "../signin/page";
+import { LoginForm } from "@/components";
 
 export default async function LoginPage() {
   const session = await serverSession();
@@ -12,5 +12,9 @@ export default async function LoginPage() {
       redirect("/dashboard");
     }
   }
-  return <SignInPage />;
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <LoginForm />
+    </div>
+  );
 }
