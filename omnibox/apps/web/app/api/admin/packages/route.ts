@@ -15,12 +15,21 @@ export async function POST(req: NextRequest) {
   if (!session || session.user?.email !== process.env.ADMIN_EMAIL) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
-  const body = (await req.json()) as Package;
-  const idx = PACKAGES.findIndex((p) => p.id === body.id);
-  if (idx === -1) {
-    PACKAGES.push(body);
-  } else {
-    PACKAGES[idx] = body;
+
+  const body = await req.json();
+
+  if (Array.isArray(body.packages)) {
+    PACKAGES.splice(0, PACKAGES.length, ...body.packages);
+    return NextResponse.json({ ok: true });
   }
+
+  const pkg = body as Package;
+  const idx = PACKAGES.findIndex((p) => p.id === pkg.id);
+  if (idx === -1) {
+    PACKAGES.push(pkg);
+  } else {
+    PACKAGES[idx] = pkg;
+  }
+
   return NextResponse.json({ ok: true });
 }
