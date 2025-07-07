@@ -40,11 +40,13 @@ function NavLink({
   );
 }
 
+import { LogoutButton } from "@/components";
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen">
-      <aside className="w-48 sm:w-60 border-r p-4 space-y-2">
-        <nav className="flex flex-col gap-2">
+      <aside className="w-48 sm:w-60 border-r p-4 flex flex-col">
+        <nav className="flex flex-col gap-2 flex-1">
           <NavLink href="/dashboard" icon={LayoutDashboard}>Dashboard</NavLink>
           <NavLink href="/dashboard/inbox" icon={Inbox}>Inbox</NavLink>
           <NavLink href="/dashboard/deals" icon={Handshake}>Deals</NavLink>
@@ -57,6 +59,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <NavLink href="/dashboard/segments" icon={PieChart}>Segments</NavLink>
           <NavLink href="/dashboard/settings" icon={Settings}>Settings</NavLink>
         </nav>
+        <LogoutButton />
       </aside>
       <main className="flex-1 p-4 overflow-y-auto">{children}</main>
     </div>
