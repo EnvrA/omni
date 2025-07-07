@@ -47,6 +47,12 @@ export default async function AdminLayout({
           >
             Features
           </Link>
+          <Link
+            href="/admin/packages"
+            className="w-full rounded px-2 py-1 text-left hover:bg-gray-100"
+          >
+            Packages
+          </Link>
         </nav>
         <LogoutButton />
       </aside>
