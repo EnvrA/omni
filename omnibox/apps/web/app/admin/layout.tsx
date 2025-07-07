@@ -10,7 +10,7 @@ export default async function AdminLayout({
   children: ReactNode;
 }) {
   const session = await serverSession();
-  if (!session) redirect("/signin");
+  if (!session) redirect("/login");
   if (session.user?.email !== process.env.ADMIN_EMAIL) redirect("/");
 
   return (
