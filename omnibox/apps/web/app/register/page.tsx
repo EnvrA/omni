@@ -28,18 +28,6 @@ export default async function RegisterPage() {
         <div className="grid md:grid-cols-2 rounded-2xl shadow-lg overflow-hidden">
           <form className="bg-white p-8 space-y-6">
             <h2 className="text-lg font-semibold">General Infomation</h2>
-            <div className="flex gap-4">
-              <input
-                type="text"
-                placeholder="First Name"
-                className="w-1/2 bg-transparent border-b border-gray-300 p-3 placeholder-gray-400 text-sm focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Last Name"
-                className="w-1/2 bg-transparent border-b border-gray-300 p-3 placeholder-gray-400 text-sm focus:outline-none"
-              />
-            </div>
             <input
               type="text"
               placeholder="Company"
@@ -67,36 +55,16 @@ export default async function RegisterPage() {
                 className="w-1/2 bg-transparent border-b border-gray-300 p-3 placeholder-gray-400 text-sm focus:outline-none"
               />
             </div>
-            <select
-              className="w-full bg-transparent border-b border-gray-300 p-3 text-sm text-gray-500 focus:outline-none"
-            >
-              <option value="">Country</option>
-              <option>USA</option>
-              <option>Canada</option>
-              <option>UK</option>
-            </select>
             <div className="flex gap-4">
               <input
                 type="text"
                 placeholder="Phone Number"
-                className="w-1/2 bg-transparent border-b border-gray-300 p-3 placeholder-gray-400 text-sm focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Phone Number"
-                className="w-1/2 bg-transparent border-b border-gray-300 p-3 placeholder-gray-400 text-sm focus:outline-none"
+                className="w-full bg-transparent border-b border-gray-300 p-3 placeholder-gray-400 text-sm focus:outline-none"
               />
             </div>
             <div className="flex gap-4">
               <select
-                className="w-1/2 bg-transparent border-b border-gray-300 p-3 text-sm text-gray-500 focus:outline-none"
-              >
-                {EMPLOYEES.map((e) => (
-                  <option key={e}>{e}</option>
-                ))}
-              </select>
-              <select
-                className="w-1/2 bg-transparent border-b border-gray-300 p-3 text-sm text-gray-500 focus:outline-none"
+                className="w-full bg-transparent border-b border-gray-300 p-3 text-sm text-gray-500 focus:outline-none"
               >
                 {EMPLOYEES.map((e) => (
                   <option key={e}>{e}</option>
@@ -106,6 +74,18 @@ export default async function RegisterPage() {
           </form>
           <form className="bg-[#4e5cf8] text-white p-8 space-y-6">
             <h2 className="text-lg font-semibold">Contact Details</h2>
+            <div className="flex gap-4">
+              <input
+                type="text"
+                placeholder="First Name"
+                className="w-1/2 bg-transparent border-b border-white/70 p-3 placeholder-white/70 text-sm focus:outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Last Name"
+                className="w-1/2 bg-transparent border-b border-white/70 p-3 placeholder-white/70 text-sm focus:outline-none"
+              />
+            </div>
             <input
               type="text"
               placeholder="Your Email"
