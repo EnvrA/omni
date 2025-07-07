@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { v4 as uuidv4 } from "uuid";
 import { Button, Input } from "@/components/ui";
+import { ArrowUp, ArrowDown, Trash } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -28,22 +29,48 @@ export default function PackagesPage() {
     mutate();
   }
 
+  async function saveOrder(newPkgs: any[]) {
+    setPkgs(newPkgs);
+    await fetch("/api/admin/packages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ packages: newPkgs }),
+    });
+    mutate();
+  }
+
+  function move(id: string, dir: "up" | "down") {
+    const index = pkgs.findIndex((p) => p.id === id);
+    const newIndex = dir === "up" ? index - 1 : index + 1;
+    if (index === -1 || newIndex < 0 || newIndex >= pkgs.length) return;
+    const copy = [...pkgs];
+    const [removed] = copy.splice(index, 1);
+    copy.splice(newIndex, 0, removed);
+    saveOrder(copy);
+  }
+
+  async function deletePackage(id: string) {
+    if (!confirm("Delete this package?")) return;
+    await fetch(`/api/admin/packages/${id}`, { method: "DELETE" });
+    setPkgs((p) => p.filter((pkg) => pkg.id !== id));
+    mutate();
+  }
+
   function addPackage() {
-    setPkgs((p) => [
-      ...p,
-      {
-        id: uuidv4(),
-        name: "",
-        contactsLimit: 0,
-        dealsLimit: 0,
-        messagingLimit: 0,
-        invoicingLimit: 0,
-        revenueReportingLimit: 0,
-        segmentingLimit: 0,
-        monthlyPrice: 0,
-        yearlyPrice: 0,
-      },
-    ]);
+    const pkg = {
+      id: uuidv4(),
+      name: "",
+      contactsLimit: 0,
+      dealsLimit: 0,
+      messagingLimit: 0,
+      invoicingLimit: 0,
+      revenueReportingLimit: 0,
+      segmentingLimit: 0,
+      monthlyPrice: 0,
+      yearlyPrice: 0,
+    };
+    setPkgs((p) => [...p, pkg]);
+    save(pkg);
   }
 
   return (
@@ -151,8 +178,29 @@ export default function PackagesPage() {
                       }
                     />
                   </td>
-                  <td className="p-2">
+                  <td className="p-2 flex items-center gap-1">
+                    <button
+                      onClick={() => move(p.id, "up")}
+                      className="p-1 hover:text-blue-600"
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                      <span className="sr-only">Move up</span>
+                    </button>
+                    <button
+                      onClick={() => move(p.id, "down")}
+                      className="p-1 hover:text-blue-600"
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                      <span className="sr-only">Move down</span>
+                    </button>
                     <Button onClick={() => save(p)}>Save</Button>
+                    <button
+                      onClick={() => deletePackage(p.id)}
+                      className="p-1 text-red-600 hover:text-red-700"
+                    >
+                      <Trash className="h-4 w-4" />
+                      <span className="sr-only">Delete</span>
+                    </button>
                   </td>
                 </tr>
               );
