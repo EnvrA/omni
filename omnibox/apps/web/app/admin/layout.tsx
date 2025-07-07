@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import Link from "next/link";
 import { serverSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { LogoutButton } from "@/components";
 
 export default async function AdminLayout({
   children,
@@ -14,8 +15,8 @@ export default async function AdminLayout({
 
   return (
     <div className="flex min-h-screen">
-      <aside className="w-48 border-r p-4 space-y-2">
-        <nav className="flex flex-col gap-2">
+      <aside className="w-48 border-r p-4 flex flex-col">
+        <nav className="flex flex-col gap-2 flex-1">
           <Link
             href="/admin/dashboard"
             className="w-full rounded px-2 py-1 text-left hover:bg-gray-100"
@@ -47,6 +48,7 @@ export default async function AdminLayout({
             Features
           </Link>
         </nav>
+        <LogoutButton />
       </aside>
       <main className="flex-1 p-4 overflow-y-auto">{children}</main>
     </div>

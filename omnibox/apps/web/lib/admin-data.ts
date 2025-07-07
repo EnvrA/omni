@@ -5,9 +5,13 @@ export const FLAGS: { id: string; name: string; enabled: boolean }[] = [
 
 export const TEMPLATES: { id: string; text: string }[] = [];
 
-export const LOGS: {
+export type LogEntry = {
   id: string;
   timestamp: string;
+  tenant: string;
+  level: string;
   message: string;
   resolved: boolean;
-}[] = [];
+};
+
+export const LOGS: LogEntry[] = [];

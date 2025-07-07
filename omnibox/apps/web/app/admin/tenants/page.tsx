@@ -36,10 +36,16 @@ export default async function TenantsPage() {
               <td className="p-2">N/A</td>
               <td className="p-2">N/A</td>
               <td className="p-2 text-right space-x-2">
-                <Link href="#" className="underline text-blue-600">
+                <Link
+                  href={`/admin/tenants/${u.id}/impersonate`}
+                  className="underline text-blue-600"
+                >
                   Impersonate
                 </Link>
-                <Link href="#" className="underline text-blue-600">
+                <Link
+                  href={`/admin/tenants/${u.id}/plan`}
+                  className="underline text-blue-600"
+                >
                   Change Plan
                 </Link>
                 <Link href="#" className="underline text-red-600">
