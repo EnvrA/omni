@@ -1,0 +1,26 @@
+import { NextRequest, NextResponse } from "next/server";
+import { serverSession } from "@/lib/auth";
+import { PACKAGES, Package } from "@/lib/admin-data";
+
+export async function GET() {
+  const session = await serverSession();
+  if (!session || session.user?.email !== process.env.ADMIN_EMAIL) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+  return NextResponse.json({ packages: PACKAGES });
+}
+
+export async function POST(req: NextRequest) {
+  const session = await serverSession();
+  if (!session || session.user?.email !== process.env.ADMIN_EMAIL) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+  const body = (await req.json()) as Package;
+  const idx = PACKAGES.findIndex((p) => p.id === body.id);
+  if (idx === -1) {
+    PACKAGES.push(body);
+  } else {
+    PACKAGES[idx] = body;
+  }
+  return NextResponse.json({ ok: true });
+}
