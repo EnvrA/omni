@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { serverSession } from "@/lib/auth";
-import { PACKAGES } from "@/lib/admin-data";
+import { readPackages, writePackages } from "@/lib/package-store";
 
 export async function DELETE(_req: NextRequest, { params }: any) {
   const { id } = params as { id: string };
@@ -8,7 +8,11 @@ export async function DELETE(_req: NextRequest, { params }: any) {
   if (!session || session.user?.email !== process.env.ADMIN_EMAIL) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
-  const idx = PACKAGES.findIndex((p) => p.id === id);
-  if (idx !== -1) PACKAGES.splice(idx, 1);
+  const packages = await readPackages();
+  const idx = packages.findIndex((p) => p.id === id);
+  if (idx !== -1) {
+    packages.splice(idx, 1);
+    await writePackages(packages);
+  }
   return NextResponse.json({ ok: true });
 }

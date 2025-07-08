@@ -1,0 +1,38 @@
+[
+  {
+    "id": "starter",
+    "name": "Starter",
+    "contactsLimit": 100,
+    "dealsLimit": 5,
+    "messagingLimit": 100,
+    "invoicingLimit": 10,
+    "revenueReportingLimit": 0,
+    "segmentingLimit": 0,
+    "monthlyPrice": 10,
+    "yearlyPrice": 100
+  },
+  {
+    "id": "pro",
+    "name": "Pro",
+    "contactsLimit": 1000,
+    "dealsLimit": 20,
+    "messagingLimit": 1000,
+    "invoicingLimit": 50,
+    "revenueReportingLimit": 50,
+    "segmentingLimit": 10,
+    "monthlyPrice": 20,
+    "yearlyPrice": 200
+  },
+  {
+    "id": "enterprise",
+    "name": "Enterprise",
+    "contactsLimit": 10000,
+    "dealsLimit": 200,
+    "messagingLimit": 10000,
+    "invoicingLimit": 500,
+    "revenueReportingLimit": 100,
+    "segmentingLimit": 50,
+    "monthlyPrice": 50,
+    "yearlyPrice": 500
+  }
+]
