@@ -8,7 +8,7 @@ import { ArrowUp, ArrowDown, Trash } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-export default function PackagesPage() {
+export default function PlansPage() {
   const { data, mutate } = useSWR("/api/admin/packages", fetcher);
   const [pkgs, setPkgs] = useState<any[]>([]);
 
@@ -50,7 +50,7 @@ export default function PackagesPage() {
   }
 
   async function deletePackage(id: string) {
-    if (!confirm("Delete this package?")) return;
+    if (!confirm("Delete this plan?")) return;
     await fetch(`/api/admin/packages/${id}`, { method: "DELETE" });
     setPkgs((p) => p.filter((pkg) => pkg.id !== id));
     mutate();
@@ -75,11 +75,11 @@ export default function PackagesPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold">Packages</h1>
+      <h1 className="text-lg font-semibold">Plans</h1>
       <p className="text-sm text-gray-500">
-        Manage subscription packages here.
+        Manage subscription plans here.
       </p>
-      <Button onClick={addPackage}>Add Package</Button>
+      <Button onClick={addPackage}>Add Plan</Button>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>

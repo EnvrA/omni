@@ -48,10 +48,10 @@ export default async function AdminLayout({
             Features
           </Link>
           <Link
-            href="/admin/packages"
+            href="/admin/plans"
             className="w-full rounded px-2 py-1 text-left hover:bg-gray-100"
           >
-            Packages
+            Plans
           </Link>
         </nav>
         <LogoutButton />
