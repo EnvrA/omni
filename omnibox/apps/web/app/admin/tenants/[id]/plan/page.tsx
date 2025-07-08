@@ -1,8 +1,9 @@
 import prisma from "@/lib/prisma";
 
-export default async function TenantPlanPage({ params }: { params: { id: string } }) {
+export default async function TenantPlanPage({ params }: any) {
+  const { id } = (await params) as { id: string };
   const tenant = await prisma.user.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: { name: true, email: true },
   });
   if (!tenant) return <p>Tenant not found.</p>;

@@ -187,8 +187,8 @@ export default function TenantsPage() {
                   {u.name ?? u.email}
                 </td>
                 <td className="p-2">
-                  <Badge className={u.stripeCustomer?.plan === "PRO" ? "bg-green-100" : "bg-gray-100"}>
-                    {u.stripeCustomer?.plan ?? "FREE"}
+                  <Badge className={u.stripeCustomer?.plan === "pro" ? "bg-green-100" : "bg-gray-100"}>
+                    {u.stripeCustomer?.plan ?? "starter"}
                   </Badge>
                 </td>
                 <td className="p-2">{u.status}</td>

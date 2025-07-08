@@ -26,8 +26,9 @@ enum Stage {
 }
 
 enum Plan {
-  FREE
-  PRO
+  starter
+  pro
+  enterprise
 }
 
 model User {

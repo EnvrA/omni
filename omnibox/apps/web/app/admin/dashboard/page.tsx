@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 export default async function AdminDashboard() {
   const totalCustomers = await prisma.user.count();
   const proCount = await prisma.stripeCustomer.count({
-    where: { plan: "PRO" },
+    where: { plan: "pro" },
   });
   const mrr = proCount * 10; // assume $10 per PRO subscription
   const churnRate = 0; // placeholder
