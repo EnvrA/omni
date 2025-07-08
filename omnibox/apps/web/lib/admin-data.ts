@@ -16,6 +16,9 @@ export type LogEntry = {
 
 export const LOGS: LogEntry[] = [];
 
+// Tracks whether a tenant is active. True by default when missing.
+export const TENANT_STATUS: Record<string, boolean> = {};
+
 export type Package = {
   id: string;
   name: string;

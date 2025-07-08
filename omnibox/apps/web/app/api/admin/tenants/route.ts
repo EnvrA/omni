@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { serverSession } from "@/lib/auth";
+import { TENANT_STATUS } from "@/lib/admin-data";
 
 export async function GET(req: NextRequest) {
   const session = await serverSession();
@@ -10,6 +11,7 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const q = url.searchParams.get("q") || "";
   const plan = url.searchParams.get("plan") || "";
+  const status = url.searchParams.get("status") || "";
 
   const where: any = {};
   if (q) {
@@ -32,7 +34,14 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  return NextResponse.json({ tenants });
+  const result = tenants
+    .map((t) => ({
+      ...t,
+      status: TENANT_STATUS[t.id] === false ? "inactive" : "active",
+    }))
+    .filter((t) => !status || t.status === status);
+
+  return NextResponse.json({ tenants: result });
 }
 
 export async function POST(req: NextRequest) {
