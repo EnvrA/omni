@@ -2,7 +2,9 @@ import { promises as fs } from "fs";
 import path from "path";
 import { Package } from "./admin-data";
 
-const filePath = path.join(process.cwd(), "apps/web/data/packages.json");
+// Resolve the packages file relative to the Next.js app root so it works
+// in development and in production.
+const filePath = path.join(process.cwd(), "data", "packages.json");
 
 export async function readPackages(): Promise<Package[]> {
   try {
