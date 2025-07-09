@@ -1,8 +1,10 @@
 "use client";
 import useSWR from "swr";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Input, Button, Card } from "@/components/ui";
+import { Input, Button, Badge } from "@/components/ui";
+import InvoiceRowMenu from "./InvoiceRowMenu";
 import { toast } from "sonner";
 
 interface Invoice {
@@ -27,6 +29,7 @@ const fetcher = async (url: string) => {
 };
 
 export default function InvoicesPage() {
+  const router = useRouter();
   const { data, mutate } = useSWR<{ invoices: Invoice[] }>(
     "/api/invoices",
     fetcher,
@@ -184,72 +187,56 @@ export default function InvoicesPage() {
           <p className="text-center text-gray-500">No invoices.</p>
         )}
       {data && Array.isArray(data.invoices) && data.invoices.length > 0 && (
-        <div className="space-y-2">
-          {filteredInvoices?.map((inv) => (
-            <Card key={inv.id} className="flex flex-col gap-2 sm:flex-row sm:justify-between p-2">
-              <div>
-                <div className="font-semibold">
-                  {inv.contact.name || "Unnamed"}
-                </div>
-                {inv.invoiceNumber && (
-                  <div className="text-sm text-gray-500">
-                    #{inv.invoiceNumber}
-                  </div>
-                )}
-                <div className="text-sm text-gray-600">
-                  ${inv.amount} due {new Date(inv.dueDate).toLocaleDateString()}
-                </div>
-                <div className="text-sm">Status: {inv.status}</div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 justify-end">
-                <Link
-                  href={`/dashboard/invoices/new?id=${inv.id}`}
-                  className="inline-block"
-                  aria-label="Edit invoice"
-                >
-                  <Button type="button">Edit</Button>
-                </Link>
-                {inv.status !== "PAID" && (
-                  <Button onClick={() => action(inv.id, "markPaid")}>
-                    Mark Paid
-                  </Button>
-                )}
-                {inv.status === "DRAFT" && (
-                  <>
-                    <Button
-                      className="border-green-700 bg-green-600 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
-                      onClick={() => action(inv.id, "send")}
-                    >
-                      Send
-                    </Button>
-                    <Button
-                      className="border-red-700 bg-red-600 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-                      onClick={() => deleteInvoice(inv.id)}
-                    >
-                      Delete
-                    </Button>
-                  </>
-                )}
-                {inv.status === "SENT" && (
-                  <Button
-                    className="border-orange-700 bg-orange-600 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
-                    onClick={() => archiveInvoice(inv.id)}
-                  >
-                    Archive
-                  </Button>
-                )}
-                {inv.pdfUrl && (
-                  <Button
-                    type="button"
-                    aria-label="View PDF"
-                    onClick={() => openPdf(inv.pdfUrl)}
-                  >
-                    PDF
-                  </Button>
-                )}
-              </div>
-            </Card>
-          ))}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-[#F8F9FA] text-[14px] font-bold text-[#333] text-left">
+                <th className="p-2">Client</th>
+                <th className="p-2">Invoice #</th>
+                <th className="p-2">Amount</th>
+                <th className="p-2">Due Date</th>
+                <th className="p-2">Status</th>
+                <th className="p-2 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredInvoices?.map((inv) => {
+                const status = inv.status.toUpperCase();
+                let bg = "#6C757D";
+                let color = "#fff";
+                if (status === "PAID") {
+                  bg = "#28A745";
+                } else if (status === "ARCHIVED") {
+                  bg = "#E0E0E0";
+                  color = "#333";
+                }
+                return (
+                  <tr key={inv.id} className="border-b border-[#EEE]">
+                    <td className="p-4">{inv.contact.name || "Unnamed"}</td>
+                    <td className="p-4">{inv.invoiceNumber ? `#${inv.invoiceNumber}` : "-"}</td>
+                    <td className="p-4">${inv.amount}</td>
+                    <td className="p-4">{new Date(inv.dueDate).toLocaleDateString()}</td>
+                    <td className="p-4">
+                      <Badge className="text-[10px]" style={{ background: bg, color }}>
+                        {status}
+                      </Badge>
+                    </td>
+                    <td className="p-4 text-right">
+                      <InvoiceRowMenu
+                        onEdit={() => router.push(`/dashboard/invoices/new?id=${inv.id}`)}
+                        onMarkPaid={() => action(inv.id, "markPaid")}
+                        onSend={() => action(inv.id, "send")}
+                        onDelete={() => deleteInvoice(inv.id)}
+                        onPdf={() => inv.pdfUrl && openPdf(inv.pdfUrl)}
+                        showMarkPaid={inv.status !== "PAID"}
+                        showSend={inv.status === "DRAFT"}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
