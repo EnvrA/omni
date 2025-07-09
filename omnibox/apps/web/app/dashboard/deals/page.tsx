@@ -12,6 +12,7 @@ import { arrayMove } from "@dnd-kit/sortable";
 import { Card, Button, Input, Textarea } from "@/components/ui";
 import { toast } from "sonner";
 import { useTags, TagManager } from "@/components";
+import { GripVertical, Layers, Search, Filter } from "lucide-react";
 
 // Robust fetcher handles non-JSON errors gracefully
 const fetcher = async (url: string) => {
@@ -45,6 +46,7 @@ interface DealExtra {
 interface Stage {
   id: string;
   name: string;
+  color?: string;
 }
 
 interface Pipeline {
@@ -66,6 +68,13 @@ function uniqBy<T>(arr: T[], getKey: (item: T) => string): T[] {
     return true;
   });
 }
+
+const defaultStageColors: Record<string, string> = {
+  NEW: "#28A745",
+  IN_PROGRESS: "#17A2B8",
+  WAITING: "#FFC107",
+  DONE: "#6C757D",
+};
 
 function DraggableCard({
   deal,
@@ -94,31 +103,29 @@ function DraggableCard({
     : undefined;
   const [editing, setEditing] = useState(false);
   return (
-    <Card
+    <div
       ref={setNodeRef}
       style={style}
       onClick={onOpen}
-      className={`relative mb-2 space-y-1 rounded bg-white p-2 shadow transition-transform ${
+      className={`relative mb-2 space-y-1 rounded-lg border border-[#EEE] bg-white p-3 transition-shadow hover:shadow-[0_2px_4px_rgba(0,0,0,0.08)] ${
         isOpen ? "filter-none brightness-100 z-50" : ""
       }`}
     >
-      <span
+      <GripVertical
         {...listeners}
         {...attributes}
-        className="absolute right-1 top-1 cursor-move text-gray-400"
+        className="absolute left-1 top-1 h-4 w-4 cursor-move text-gray-400"
         onClick={(e) => e.stopPropagation()}
-        aria-label="Drag handle"
-      >
-        ⋮
-      </span>
+        aria-hidden="true"
+      />
       <input
         type="checkbox"
         checked={selected}
         onChange={(e) => onSelect(e.target.checked)}
-        className="absolute left-1 top-1"
+        className="absolute right-1 top-1"
         onClick={(e) => e.stopPropagation()}
       />
-      <div className="flex items-center gap-1 text-sm font-semibold">
+      <div className="flex items-center gap-1 text-base font-bold">
         {editing ? (
           <Input
             autoFocus
@@ -144,11 +151,11 @@ function DraggableCard({
           </>
         )}
       </div>
-      <div className="text-xs text-gray-600">
+      <div className="text-sm text-[#555]">
         {deal.contact.name || "Unnamed"}
       </div>
-      <div className="text-xs text-gray-500">
-        Deal Value: ${extra?.value ?? 0}
+      <div className="text-sm text-[#1F8A70]">
+        ${extra?.value ?? 0}
       </div>
       {extra?.hasDeadline && extra.deadline && (
         <div className="text-xs text-red-600">Due: {extra.deadline}</div>
@@ -163,13 +170,14 @@ function DraggableCard({
           {extra.tag}
         </span>
       )}
-    </Card>
+    </div>
   );
 }
 
 function StageColumn({
   stage,
   name,
+  color,
   onRename,
   onDelete,
   deals,
@@ -181,7 +189,8 @@ function StageColumn({
 }: {
   stage: string;
   name: string;
-  onRename: (name: string) => void;
+  color?: string;
+  onRename: (name: string, color: string) => void;
   onDelete: () => void;
   deals: Deal[];
   extras: Record<string, DealExtra>;
@@ -214,25 +223,35 @@ function StageColumn({
     : undefined;
   const [editing, setEditing] = useState(false);
   const [tempName, setTempName] = useState(name);
+  const [tempColor, setTempColor] = useState(color || defaultStageColors[stage]);
   return (
     <div
       ref={ref}
       style={style}
       className={`space-y-2 rounded border p-2 ${isOver ? "bg-blue-50" : "bg-gray-50"}`}
     >
-      <div className="mb-1 flex items-center gap-1">
+      <div
+        className="mb-1 flex h-12 items-center gap-1 px-4 text-sm font-bold uppercase text-white"
+        style={{ background: color || defaultStageColors[stage] }}
+      >
         {editing ? (
           <>
             <Input
               autoFocus
-              className="flex-1"
+              className="flex-1 text-black"
               value={tempName}
               onChange={(e) => setTempName(e.target.value)}
+            />
+            <input
+              type="color"
+              value={tempColor}
+              onChange={(e) => setTempColor(e.target.value)}
+              aria-label="Column color"
             />
             <button
               type="button"
               onClick={() => {
-                onRename(tempName);
+                onRename(tempName, tempColor);
                 setEditing(false);
               }}
               aria-label="Confirm column name"
@@ -300,10 +319,10 @@ function StageColumn({
 }
 
 const defaultStages: Stage[] = [
-  { id: "NEW", name: "NEW" },
-  { id: "IN_PROGRESS", name: "IN_PROGRESS" },
-  { id: "WAITING", name: "WAITING" },
-  { id: "DONE", name: "DONE" },
+  { id: "NEW", name: "NEW", color: defaultStageColors.NEW },
+  { id: "IN_PROGRESS", name: "IN_PROGRESS", color: defaultStageColors.IN_PROGRESS },
+  { id: "WAITING", name: "WAITING", color: defaultStageColors.WAITING },
+  { id: "DONE", name: "DONE", color: defaultStageColors.DONE },
 ];
 
 export default function DealsPage() {
@@ -723,8 +742,8 @@ export default function DealsPage() {
       {drawerDeal && (
         <div className="pointer-events-none fixed inset-0 z-40 bg-white/50 backdrop-blur-sm" />
       )}
-      <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
-        <div className="flex flex-wrap items-end gap-2">
+      <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 border-b border-[#DDD] bg-white p-4">
+        <div className="flex items-center gap-2">
           <select
             className="rounded border p-1"
             value={currentPipeline}
@@ -749,49 +768,66 @@ export default function DealsPage() {
                 setCurrentPipeline(id);
               }
             }}
-            className="hover:bg-gray-100"
+            className="flex items-center gap-1 hover:bg-gray-100"
           >
+            <Layers className="h-4 w-4" aria-hidden="true" />
             Add Pipeline
           </Button>
-          <Input
-            placeholder="Search by contact"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-40"
-          />
-          <select
-            className="rounded border p-1"
-            value={tagFilter}
-            onChange={(e) => setTagFilter(e.target.value)}
-          >
-            <option value="all">All Tags</option>
-            {tags.map((t) => (
-              <option key={t.id} value={t.name}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-          <Button
-            type="button"
-            onClick={() => setShowTags(true)}
-            className="hover:bg-gray-100"
-          >
-            Manage Tags
-          </Button>
-          <Button
-            type="button"
-            onClick={() => {
-              const name = prompt("Column name?");
-              if (name) {
-                const id = slugify(name);
-                updateStages([...stages, { id, name }]);
-              }
-            }}
-            className="hover:bg-gray-100"
-          >
-            Add Column
-          </Button>
         </div>
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+            <Input
+              placeholder="Search deals…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-8"
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Filter className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+            <select
+              className="rounded border p-1 pl-8"
+              value={tagFilter}
+              onChange={(e) => setTagFilter(e.target.value)}
+            >
+              <option value="all">Filter</option>
+              {tags.map((t) => (
+                <option key={t.id} value={t.name}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-end gap-2">
+        <Button
+          type="button"
+          onClick={() => setShowTags(true)}
+          className="hover:bg-gray-100"
+        >
+          Manage Tags
+        </Button>
+        <Button
+          type="button"
+          onClick={() => {
+            const name = prompt("Column name?");
+            if (name) {
+              const id = slugify(name);
+              updateStages([
+                ...stages,
+                { id, name, color: defaultStageColors.DONE },
+              ]);
+            }
+          }}
+          className="hover:bg-gray-100"
+        >
+          Add Column
+        </Button>
         <button
           onClick={() => setShowAdd(true)}
           className="whitespace-nowrap rounded border border-green-700 bg-green-600 px-3 py-1 text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
@@ -870,16 +906,19 @@ export default function DealsPage() {
       {data && (
         <DndContext onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-            {stageList.map((stage) => (
-              <StageColumn
-                key={stage.id}
-                stage={stage.id}
-                name={stage.name}
-                onRename={(name) =>
-                  updateStages(
-                    stages.map((s) => (s.id === stage.id ? { ...s, name } : s)),
-                  )
-                }
+              {stageList.map((stage) => (
+                <StageColumn
+                  key={stage.id}
+                  stage={stage.id}
+                  name={stage.name}
+                  color={stage.color}
+                  onRename={(name, color) =>
+                    updateStages(
+                      stages.map((s) =>
+                        s.id === stage.id ? { ...s, name, color } : s,
+                      ),
+                    )
+                  }
                 onDelete={() => handleDeleteColumn(stage.id)}
                 deals={dealsByStage[stage.id]}
                 extras={extras}
