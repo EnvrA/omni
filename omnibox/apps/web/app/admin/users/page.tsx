@@ -2,20 +2,19 @@
 import { useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
-import { Button, Input, Badge } from "@/components/ui";
+import { Button, Input } from "@/components/ui";
 import {
   MoreVertical,
-  User,
+  UserCheck,
   CreditCard,
-  Trash2,
-  UserPlus,
+  UserMinus,
   PlusCircle,
-  ArrowUp,
-  ArrowDown,
-  Pencil,
   Search,
   Layers,
   Bell,
+  CheckCircle,
+  Briefcase,
+  Users as UsersIcon,
 } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -38,10 +37,10 @@ export default function TenantsPage() {
   const [editTenant, setEditTenant] = useState<(Tenant & { status: string }) | null>(null);
   const [openActions, setOpenActions] = useState<string | null>(null);
   const { data: packages } = useSWR("/api/admin/packages", fetcher);
-  const { data, mutate } = useSWR(`/api/admin/tenants?q=${query}&plan=${plan}&status=${status}`, fetcher);
+  const { data, mutate } = useSWR(`/api/admin/users?q=${query}&plan=${plan}&status=${status}`, fetcher);
 
   async function saveTenant(form: FormData) {
-    await fetch("/api/admin/tenants", {
+    await fetch("/api/admin/users", {
       method: "POST",
       body: JSON.stringify({
         name: form.get("name"),
@@ -55,7 +54,7 @@ export default function TenantsPage() {
   }
 
   async function changePlan(id: string, newPlan: string) {
-    await fetch(`/api/admin/tenants/${id}/plan`, {
+    await fetch(`/api/admin/users/${id}/plan`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ plan: newPlan }),
@@ -65,7 +64,7 @@ export default function TenantsPage() {
   }
 
   async function changeStatus(id: string, newStatus: string) {
-    await fetch(`/api/admin/tenants/${id}/status`, {
+    await fetch(`/api/admin/users/${id}/status`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
@@ -74,7 +73,7 @@ export default function TenantsPage() {
   }
 
   async function saveInfo(id: string, form: FormData) {
-    await fetch(`/api/admin/tenants/${id}/info`, {
+    await fetch(`/api/admin/users/${id}/info`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -88,7 +87,7 @@ export default function TenantsPage() {
 
   async function deleteTenant(id: string) {
     if (!confirm("Delete this user?")) return;
-    await fetch(`/api/admin/tenants/${id}`, { method: "DELETE" });
+    await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
     mutate();
   }
 
@@ -106,7 +105,7 @@ export default function TenantsPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-6">
-        <div className="relative w-72">
+        <div className="relative w-[280px]">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
           <Input
             className="border-b focus:outline-none pl-7 w-full"
@@ -115,7 +114,7 @@ export default function TenantsPage() {
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
-        <div className="relative w-48">
+        <div className="relative w-[200px]">
           <Layers className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
           <select
             className="border-b focus:outline-none pl-7 w-full"
@@ -130,7 +129,7 @@ export default function TenantsPage() {
             ))}
           </select>
         </div>
-        <div className="relative w-48">
+        <div className="relative w-[200px]">
           <Bell className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
           <select
             className="border-b focus:outline-none pl-7 w-full"
@@ -145,7 +144,7 @@ export default function TenantsPage() {
         </div>
         <Button
           onClick={() => setAddOpen(true)}
-          className="flex items-center gap-2 h-10 px-4 bg-[#1F8A70] text-white rounded-lg hover:bg-[#166653]"
+          className="ml-auto flex items-center gap-2 h-10 px-4 bg-[#1F8A70] text-white rounded-lg hover:bg-[#166653]"
         >
           <PlusCircle className="h-5 w-5" /> Add User
         </Button>
@@ -193,13 +192,31 @@ export default function TenantsPage() {
                       e.target.checked ? tenants.map((t: any) => t.id) : []
                     )
                   }
+                  className="h-5 w-5"
                 />
               </th>
-              <th className="p-2 cursor-pointer" onClick={() => setSort({ field: "name", dir: sort.dir === "asc" ? "desc" : "asc" })}>
-                Company {sort.field === "name" && (sort.dir === "asc" ? <ArrowUp className="inline h-3" /> : <ArrowDown className="inline h-3" />)}
+              <th className="p-2 text-[16px] font-bold text-[#333]">User</th>
+              <th className="p-2 text-[16px] font-bold">
+                <span className="inline-flex items-center gap-1">
+                  <Layers className="h-4 w-4" /> Plan
+                </span>
               </th>
-              <th className="p-2">Users</th>
-              <th className="p-2 w-12 text-right">Actions</th>
+              <th className="p-2 text-[16px] font-bold">
+                <span className="inline-flex items-center gap-1">
+                  <CheckCircle className="h-4 w-4" /> Status
+                </span>
+              </th>
+              <th className="p-2 text-[16px] font-bold">
+                <span className="inline-flex items-center gap-1">
+                  <Briefcase className="h-4 w-4" /> Company Name
+                </span>
+              </th>
+              <th className="p-2 text-[16px] font-bold text-center">
+                <span className="inline-flex items-center gap-1">
+                  <UsersIcon className="h-4 w-4" /> Users (Seats)
+                </span>
+              </th>
+              <th className="p-2 w-12 text-right text-[16px] font-bold">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -214,28 +231,42 @@ export default function TenantsPage() {
                         e.target.checked ? [...s, u.id] : s.filter((i) => i !== u.id)
                       )
                     }
-                    className="mr-2"
+                    className="h-5 w-5"
                   />
-                  <span className="font-bold text-base">{u.name ?? u.email}</span>
-                  {" "}
-                  <Badge className="ml-2 bg-gray-100">{u.stripeCustomer?.plan ?? "starter"}</Badge>
                 </td>
-                  <td className="p-2">
-                    <span
-                      className="rounded-full px-2 py-0.5 text-xs text-white"
-                      style={{
-                        backgroundColor:
-                          u.status === "active"
-                            ? "#28A745"
-                            : u.status === "suspended"
-                            ? "#DC3545"
-                            : "#6C757D",
-                      }}
-                    >
-                      {u.status}
-                    </span>
-                  </td>
-                <td className="p-2">1</td>
+                <td className="p-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#DDEEFF] text-[14px] font-medium">
+                      {(u.name ?? u.email).slice(0,2).toUpperCase()}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[16px] font-medium text-[#111]">{u.name ?? u.email}</span>
+                      {u.name && <span className="text-[14px] text-[#666]">{u.email}</span>}
+                    </div>
+                  </div>
+                </td>
+                <td className="p-2">
+                  <span className="inline-block rounded-full bg-gray-100 px-2 py-1 text-[10px]">
+                    {u.stripeCustomer?.plan ?? "starter"}
+                  </span>
+                </td>
+                <td className="p-2">
+                  <span
+                    className="rounded-full px-2 py-1 text-[10px] text-white"
+                    style={{
+                      backgroundColor:
+                        u.status === "active"
+                          ? "#28A745"
+                          : u.status === "suspended"
+                          ? "#DC3545"
+                          : "#6C757D",
+                    }}
+                  >
+                    {u.status}
+                  </span>
+                </td>
+                <td className="p-2 align-middle text-[16px] text-[#111]">{u.name ?? "-"}</td>
+                <td className="p-2 text-center text-[14px] text-[#111]">1</td>
                 <td className="p-2 w-12 text-right relative">
                   <button
                     className="p-1 rounded hover:bg-[#F5F5F5]"
@@ -250,10 +281,10 @@ export default function TenantsPage() {
                       className="absolute right-0 mt-1 z-[100] bg-white rounded-lg shadow-lg border w-max py-2 px-0 max-h-60 overflow-y-auto"
                     >
                       <Link
-                        href={`/admin/tenants/${u.id}/impersonate`}
+                        href={`/admin/users/${u.id}/impersonate`}
                         className="flex items-center gap-2 px-2 h-10 text-base hover:bg-[#F5F5F5] active:bg-[#E0E0E0]"
                       >
-                        <User className="h-4 w-4" /> Impersonate User
+                        <UserCheck className="h-4 w-4" /> Impersonate User
                       </Link>
                       <button
                         onClick={() => {
@@ -266,21 +297,12 @@ export default function TenantsPage() {
                       </button>
                       <button
                         onClick={() => {
-                          setAddOpen(true);
-                          setOpenActions(null);
-                        }}
-                        className="flex w-full items-center gap-2 px-2 h-10 text-base hover:bg-[#F5F5F5] active:bg-[#E0E0E0]"
-                      >
-                        <UserPlus className="h-4 w-4" /> Add User
-                      </button>
-                      <button
-                        onClick={() => {
-                          deleteTenant(u.id);
+                          changeStatus(u.id, "inactive");
                           setOpenActions(null);
                         }}
                         className="flex w-full items-center gap-2 px-2 h-10 text-base text-[#DC3545] hover:bg-[#F5F5F5] active:bg-[#E0E0E0]"
                       >
-                        <Trash2 className="h-4 w-4" /> Delete User
+                        <UserMinus className="h-4 w-4" /> Deactivate User
                       </button>
                     </div>
                   )}
