@@ -4,3 +4,4 @@ export * from './tags-context';
 export * from './toaster';
 export { default as LogoutButton } from './logout-button';
 export { default as LoginForm } from './login-form';
+export { default as ForgotPasswordForm } from './forgot-password-form';
