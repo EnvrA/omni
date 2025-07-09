@@ -2,10 +2,17 @@
 
 import useSWR from "swr";
 import { useState } from "react";
-import { Input, Button, Card, Avatar, Badge, Textarea } from "@/components/ui";
+import { Input, Button, Card, Badge, Textarea } from "@/components/ui";
 import { toast } from "sonner";
 import { useTags, TagManager } from "@/components";
-import { Edit3, Trash, Mail, Phone, MessageCircle } from "lucide-react";
+import {
+  Edit2,
+  Trash2,
+  Mail,
+  Phone,
+  Search,
+  Tag,
+} from "lucide-react";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -178,53 +185,64 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
-        <div className="flex flex-wrap items-end gap-2">
-          <Input
-            placeholder="Search clients..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-48"
-          />
-          <select
-            className="rounded border p-1"
-            value={sort}
-            onChange={(e) => setSort(e.target.value as any)}
-          >
-            <option value="name">Name</option>
-            <option value="date">Date Added</option>
-            <option value="activity">Last Activity</option>
-          </select>
-          <select
-            className="rounded border p-1"
-            value={tagFilter}
-            onChange={(e) => setTagFilter(e.target.value)}
-          >
-            <option value="all">All Tags</option>
-            {tags.map((t) => (
-              <option key={t.id} value={t.name}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-          <Button
-            type="button"
-            onClick={() => setShowTags(true)}
-            className="hover:bg-gray-100"
-          >
-            Manage Tags
-          </Button>
+      <div className="sticky top-0 z-10 space-y-2 bg-white pb-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+            <Input
+              placeholder="Search clients..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-7"
+            />
+          </div>
+          <div className="relative">
+            <Tag className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+            <select
+              className="rounded border p-2 pl-7"
+              value={tagFilter}
+              onChange={(e) => setTagFilter(e.target.value)}
+            >
+              <option value="all">All Tags</option>
+              {tags.map((t) => (
+                <option key={t.id} value={t.name}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div className="flex items-center justify-between gap-2 sm:justify-end">
-          <span className="text-sm text-gray-600">
-            Total: {filtered.length}
-          </span>
+        <div className="flex flex-wrap gap-2 pt-1">
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-xs"
+            >
+              <span>{search}</span>
+              <span aria-hidden="true">×</span>
+            </button>
+          )}
+          {tagFilter !== "all" && (
+            <button
+              onClick={() => setTagFilter("all")}
+              className="flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 text-xs"
+            >
+              <span>{tagFilter}</span>
+              <span aria-hidden="true">×</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-2 py-2">
+        <span className="text-sm text-gray-600">Total: {filtered.length}</span>
+        <div className="flex gap-2">
           <Button onClick={exportCSV} className="whitespace-nowrap">
             Export CSV
           </Button>
           <button
             onClick={openAdd}
-            className="px-3 py-1 rounded border shadow-sm whitespace-nowrap border-green-700 bg-green-600 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
+            className="rounded border border-green-700 bg-green-600 px-3 py-1 text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
           >
             Add Client
           </button>
@@ -260,30 +278,39 @@ export default function ClientsPage() {
         </div>
       )}
       {filtered.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {paged.map((c) => (
             <Card
               key={c.id}
-              className="space-y-1 rounded-lg shadow-sm transition-transform hover:scale-[1.02] hover:shadow-md"
+              className="relative space-y-2 rounded-lg border border-[#EEE] bg-white p-4 shadow-sm"
               onClick={() => {
                 setDetail(c);
                 setForm((f) => ({ ...f, notes: c.notes ?? "" }));
               }}
             >
-              <div className="flex items-start gap-2">
-                <Avatar
-                  src={c.avatar ?? undefined}
-                  label={(c.name || c.email || "?").slice(0, 2).toUpperCase()}
-                />
-                <div className="flex-1">
-                  <div className="font-semibold">{c.name || "Unnamed"}</div>
-                  <div className="text-xs text-gray-600">{c.email || "-"}</div>
-                  <div className="text-xs text-gray-600">{c.phone || "-"}</div>
+              <div className="flex gap-3">
+                {c.avatar ? (
+                  <img
+                    src={c.avatar}
+                    alt={c.name || "avatar"}
+                    className="h-10 w-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1F8A70] text-base font-medium text-white">
+                    {(c.name || c.email || "?").slice(0, 2).toUpperCase()}
+                  </span>
+                )}
+                <div className="flex flex-1 flex-col">
+                  <div className="text-lg font-bold">{c.name || "Unnamed"}</div>
+                  <div className="text-sm text-[#555]">{c.email || "-"}</div>
+                  <div className="text-sm text-[#555]">{c.phone || "-"}</div>
                   <div className="mt-1 flex flex-wrap gap-1">
                     {c.tag && (
                       <Badge
+                        className="px-2 py-1 text-[10px]"
                         style={{
-                          background: tags.find((t) => t.name === c.tag)?.color,
+                          background: tags.find((t) => t.name === c.tag)?.color ||
+                            "#DC3545",
                           color: "#fff",
                         }}
                       >
@@ -292,15 +319,14 @@ export default function ClientsPage() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-1 pt-1 text-gray-600">
+                <div className="absolute bottom-4 right-4 flex gap-2">
                   {c.email && (
                     <a
                       href={`mailto:${c.email}`}
                       onClick={(e) => e.stopPropagation()}
                       aria-label="Email client"
-                      className="text-blue-600 hover:text-blue-800"
                     >
-                      <Mail className="h-4 w-4" />
+                      <Mail className="h-6 w-6 text-[#888] hover:text-[#555]" />
                     </a>
                   )}
                   {c.phone && (
@@ -308,31 +334,18 @@ export default function ClientsPage() {
                       href={`tel:${c.phone}`}
                       onClick={(e) => e.stopPropagation()}
                       aria-label="Call client"
-                      className="text-blue-600 hover:text-blue-800"
                     >
-                      <Phone className="h-4 w-4" />
+                      <Phone className="h-6 w-6 text-[#888] hover:text-[#555]" />
                     </a>
                   )}
-                  {c.phone && (
-                    <a
-                      href={`https://wa.me/${c.phone.replace(/\D/g, "")}`}
-                      onClick={(e) => e.stopPropagation()}
-                      aria-label="WhatsApp client"
-                      className="text-green-600 hover:text-green-800"
-                    >
-                      <MessageCircle className="h-4 w-4" />
-                    </a>
-                  )}
-                  <span className="mx-1 h-4 border-l border-gray-300" />
                   <button
                     title="Edit"
                     onClick={(e) => {
                       e.stopPropagation();
                       openEdit(c);
                     }}
-                    className="hover:text-blue-700"
                   >
-                    <Edit3 className="h-4 w-4" />
+                    <Edit2 className="h-6 w-6 text-[#888] hover:text-[#555]" />
                   </button>
                   <button
                     title="Delete"
@@ -340,9 +353,8 @@ export default function ClientsPage() {
                       e.stopPropagation();
                       setConfirmDelete(c.id);
                     }}
-                    className="text-red-600 hover:text-red-700"
                   >
-                    <Trash className="h-4 w-4" />
+                    <Trash2 className="h-6 w-6 text-[#888] hover:text-[#555]" />
                   </button>
                 </div>
               </div>
