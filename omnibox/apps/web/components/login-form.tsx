@@ -4,6 +4,7 @@ import { useState, FormEvent } from 'react';
 import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { Input, Button } from './ui';
+import Link from 'next/link';
 
 export default function LoginForm() {
   const searchParams = useSearchParams();
@@ -43,6 +44,11 @@ export default function LoginForm() {
       <Button type="submit" disabled={loading} className="bg-blue-500 text-white w-full">
         {loading ? 'Logging in...' : 'Login'}
       </Button>
+      <div className="text-center">
+        <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+          Forgot password?
+        </Link>
+      </div>
     </form>
   );
 }
