@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { Input, Button } from './ui';
+import Link from 'next/link';
 import { toast } from 'sonner';
 
 export default function ForgotPasswordForm() {
@@ -40,6 +41,11 @@ export default function ForgotPasswordForm() {
       <Button type="submit" disabled={loading} className="bg-blue-500 text-white w-full">
         {loading ? 'Sending...' : 'Send new password'}
       </Button>
+      <Link href="/login">
+        <Button type="button" className="bg-green-500 text-white w-full">
+          Back to login
+        </Button>
+      </Link>
     </form>
   );
 }
