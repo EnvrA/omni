@@ -9,13 +9,14 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     try {
-      await signIn('email', { email, callbackUrl });
+      await signIn('credentials', { email, password, callbackUrl });
     } finally {
       setLoading(false);
     }
@@ -31,8 +32,16 @@ export default function LoginForm() {
         required
         className="w-full"
       />
+      <Input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+        className="w-full"
+      />
       <Button type="submit" disabled={loading} className="bg-blue-500 text-white w-full">
-        {loading ? 'Sending...' : 'Send magic link'}
+        {loading ? 'Logging in...' : 'Login'}
       </Button>
     </form>
   );

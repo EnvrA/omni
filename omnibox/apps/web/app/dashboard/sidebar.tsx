@@ -31,7 +31,7 @@ function NavLink({ href, children, icon: Icon }: { href: string; children: React
 
 export default function Sidebar() {
   return (
-    <aside className="w-48 sm:w-60 border-r p-4 flex flex-col">
+    <aside className="w-48 sm:w-60 border-r p-4 flex flex-col sticky top-0 h-screen">
       <nav className="flex flex-col gap-2 flex-1">
         <NavLink href="/dashboard" icon={LayoutDashboard}>Dashboard</NavLink>
         <NavLink href="/dashboard/inbox" icon={Inbox}>Inbox</NavLink>
