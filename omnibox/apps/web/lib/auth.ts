@@ -1,29 +1,28 @@
 /* eslint-disable turbo/no-undeclared-env-vars */
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import EmailProvider from "next-auth/providers/email";
-import sgMail from "@sendgrid/mail";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { getServerSession, type NextAuthOptions } from "next-auth";
 import prisma from "./prisma";
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
-const EMAIL_FROM = process.env.EMAIL_FROM!;
+import { compare } from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
-    EmailProvider({
-      maxAge: 15 * 60, // 15-minute link
-      async sendVerificationRequest({ identifier, url }) {
-        await sgMail.send({
-          to: identifier,
-          from: EMAIL_FROM,
-          subject: "Log in to OmniInbox",
-          html: `
-            <p>Hi there!</p>
-            <p>Click the link below to sign in (valid 15 minutes):</p>
-            <p><a href="${url}">${url}</a></p>
-          `,
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials.password) return null;
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email },
         });
+        if (!user || !user.hashedPassword || !user.emailVerified) return null;
+        const valid = await compare(credentials.password, user.hashedPassword);
+        if (!valid) return null;
+        return { id: user.id, email: user.email, name: user.name };
       },
     }),
   ],

@@ -95,6 +95,16 @@ export default async function RegisterPage() {
               className="w-full bg-transparent border-b border-white/70 p-3 placeholder-white/70 text-sm focus:outline-none"
             />
             <input
+              type="password"
+              placeholder="Password"
+              className="w-full bg-transparent border-b border-white/70 p-3 placeholder-white/70 text-sm focus:outline-none"
+            />
+            <input
+              type="password"
+              placeholder="Confirm Password"
+              className="w-full bg-transparent border-b border-white/70 p-3 placeholder-white/70 text-sm focus:outline-none"
+            />
+            <input
               type="text"
               placeholder="Your Name"
               className="w-full bg-transparent border-b border-white/70 p-3 placeholder-white/70 text-sm focus:outline-none"

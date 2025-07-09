@@ -21,6 +21,7 @@
     "@repo/ui": "workspace:*",
     "@sendgrid/mail": "^8.1.5",
     "@tanstack/react-query": "^5.52.0",
+    "bcryptjs": "^3.0.2",
     "lucide-react": "0.523.0",
     "next": "^15.3.0",
     "next-auth": "^4.24.11",
