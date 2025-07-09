@@ -1,15 +1,13 @@
 "use client";
 import InlineNameEditor from "./InlineNameEditor";
-import SegmentRowMenu from "./SegmentRowMenu";
 import BulkToolbar from "./BulkToolbar";
 import { Segment } from "../types";
 import { useState } from "react";
+import { Edit2, Trash2 } from "lucide-react";
 
 interface Props {
   segments: Segment[];
   countFor: (seg: Segment) => number;
-  onRun: (seg: Segment) => void;
-  onExport: (seg: Segment) => void;
   onEdit: (seg: Segment, name: string) => void;
   onDelete: (id: string) => void;
   onBulkDelete: (ids: string[]) => void;
@@ -19,8 +17,6 @@ interface Props {
 export default function SegmentTable({
   segments,
   countFor,
-  onRun,
-  onExport,
   onEdit,
   onDelete,
   onBulkDelete,
@@ -75,12 +71,24 @@ export default function SegmentTable({
                 {new Date(s.createdAt).toLocaleDateString()}
               </td>
               <td className="p-2 text-right">
-                <SegmentRowMenu
-                  onRun={() => onRun(s)}
-                  onExport={() => onExport(s)}
-                  onEdit={() => onEdit(s, s.name)}
-                  onDelete={() => onDelete(s.id)}
-                />
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    title="Edit"
+                    aria-label="Edit"
+                    onClick={() => onEdit(s, s.name)}
+                  >
+                    <Edit2 className="h-4 w-4 text-[#888] hover:text-[#555]" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Delete"
+                    aria-label="Delete"
+                    onClick={() => onDelete(s.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-[#888] hover:text-[#555]" />
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

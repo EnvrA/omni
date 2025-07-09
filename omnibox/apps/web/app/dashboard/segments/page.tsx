@@ -184,42 +184,64 @@ function Segments() {
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Segments</h1>
-      <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
-        <Input
-          placeholder="Search segments"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-60"
-        />
-        <button
-          type="button"
-          onClick={openNew}
-          className="px-3 py-1 rounded border shadow-sm whitespace-nowrap border-green-700 bg-green-600 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
-        >
-          Create segment
-        </button>
-      </div>
-      <SegmentTable
-        segments={filteredSegments}
-        countFor={(seg) => clientsForSegment(seg).length}
-        onRun={(seg) => setSelected(seg)}
-        onExport={(seg) => exportCSV(clientsForSegment(seg))}
-        onEdit={(seg, newName) => {
-          updateSegments.mutate(
-            segments.map((s) =>
-              s.id === seg.id ? { ...s, name: newName } : s,
-            ),
-          );
-        }}
-        onDelete={deleteSegment}
-        onBulkDelete={bulkDelete}
-        onBulkExport={(ids) =>
-          ids.forEach((id) => {
-            const seg = segments.find((s) => s.id === id);
-            if (seg) exportCSV(clientsForSegment(seg));
-          })
-        }
-      />
+      {segments.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10">
+          <img
+            src="/connected-dots.svg"
+            alt=""
+            width={200}
+            height={200}
+            className="mx-auto"
+          />
+          <p className="mt-4 text-base text-[#666]">
+            You haven’t created any segments yet.
+          </p>
+          <Button
+            type="button"
+            onClick={openNew}
+            className="mt-4 bg-green-600 text-base text-white"
+          >
+            + Create Segment
+          </Button>
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
+            <Input
+              placeholder="Search segments"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-60"
+            />
+            <button
+              type="button"
+              onClick={openNew}
+              className="px-3 py-1 rounded border shadow-sm whitespace-nowrap border-green-700 bg-green-600 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
+            >
+              Create segment
+            </button>
+          </div>
+          <SegmentTable
+            segments={filteredSegments}
+            countFor={(seg) => clientsForSegment(seg).length}
+            onEdit={(seg, newName) => {
+              updateSegments.mutate(
+                segments.map((s) =>
+                  s.id === seg.id ? { ...s, name: newName } : s,
+                ),
+              );
+            }}
+            onDelete={deleteSegment}
+            onBulkDelete={bulkDelete}
+            onBulkExport={(ids) =>
+              ids.forEach((id) => {
+                const seg = segments.find((s) => s.id === id);
+                if (seg) exportCSV(clientsForSegment(seg));
+              })
+            }
+          />
+        </>
+      )}
 
       {selected && (
         <div
