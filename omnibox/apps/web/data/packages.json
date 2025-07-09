@@ -1,5 +1,17 @@
 [
   {
+    "id": "7376a894-cdc1-4986-953e-ce22187df6e8",
+    "name": "Freemium",
+    "contactsLimit": "10",
+    "dealsLimit": "100",
+    "messagingLimit": "100",
+    "invoicingLimit": "10",
+    "revenueReportingLimit": "10",
+    "segmentingLimit": "3",
+    "monthlyPrice": 0,
+    "yearlyPrice": 0
+  },
+  {
     "id": "starter",
     "name": "Starter",
     "contactsLimit": 100,
