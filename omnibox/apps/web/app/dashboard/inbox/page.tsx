@@ -1,8 +1,9 @@
 "use client";
 
 import useSWR from "swr";
-import { useMemo, useState } from "react";
-import { Input, Button, Avatar, Spinner } from "@/components/ui";
+import { useMemo, useState, Fragment } from "react";
+import { Textarea, Button, Avatar, Spinner } from "@/components/ui";
+import { Clock, Send } from "lucide-react";
 
 // Robust fetcher handles non-JSON gracefully
 const fetcher = async (url: string) => {
@@ -74,6 +75,13 @@ export default function InboxPage() {
         .toUpperCase()
     : "?";
 
+  const sortedMessages = useMemo(() => {
+    if (!messages?.messages) return [] as any[];
+    return [...messages.messages].sort(
+      (a: any, b: any) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime(),
+    );
+  }, [messages]);
+
 
   return (
     <div className="flex h-screen flex-col gap-4 bg-gray-50 p-4 sm:flex-row overflow-hidden">
@@ -90,29 +98,38 @@ export default function InboxPage() {
             <Spinner />
           </div>
         )}
-        <ul className="space-y-1 px-2 pb-4 text-sm">
+        <ul className="px-2 pb-4 text-sm divide-y divide-transparent">
           {uniqueContacts.map((c: any) => (
             <li key={c.id}>
               <button
-                className={`flex w-full items-center gap-2 rounded px-3 py-2 text-left hover:bg-gray-100 focus:outline-none ${
-                  c.id === contactId ? "bg-blue-100 text-blue-700 font-medium" : ""
+                className={`flex w-full items-center gap-3 rounded px-3 py-3 text-left hover:bg-[#F5F5F5] focus:outline-none ${
+                  c.id === contactId ? "bg-blue-50" : ""
                 }`}
                 onClick={() => setContactId(c.id)}
               >
-                <Avatar
-                  label={
-                    c.name
-                      ? c.name
-                          .split(" ")
-                          .map((p: string) => p[0])
-                          .join("")
-                          .slice(0, 2)
-                          .toUpperCase()
-                      : "?"
-                  }
-                />
-                <span className="flex-1 truncate">{c.name || c.email || c.phone}</span>
-                <span className="text-xs text-gray-500">{c.lastMessageBody ?? ''}</span>
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#DDEEFF] text-sm font-medium text-gray-800">
+                  {c.name
+                    ? c.name
+                        .split(" ")
+                        .map((p: string) => p[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()
+                    : "?"}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-base font-bold">
+                    {c.name || c.email || c.phone}
+                  </div>
+                  <div className="truncate text-sm text-[#666]">
+                    {c.lastMessageBody ?? ''}
+                  </div>
+                </div>
+                {c.lastMessageAt && (
+                  <span className="ml-auto pl-2 text-xs text-[#999]">
+                    {new Date(c.lastMessageAt).toLocaleDateString()}
+                  </span>
+                )}
               </button>
             </li>
           ))}
@@ -140,36 +157,51 @@ export default function InboxPage() {
               </div>
             )}
             <ul className="flex-1 space-y-4 overflow-y-auto p-4 scrollbar-thin">
-              {messages?.messages?.map((m: any) => (
-                <li
-                  key={m.id}
-                  className={`flex ${m.direction === "OUT" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`flex items-end gap-2 ${m.direction === "OUT" ? "flex-row-reverse" : ""}`}
-                  >
-                    <Avatar
-                      label={m.direction === "OUT" ? "You" : contactInitials}
-                    />
-                    <div
-                      className={`max-w-[60%] break-words rounded-lg px-3 py-2 text-sm ${
-                        m.direction === "OUT"
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-100 text-gray-900"
-                      }`}
+              {sortedMessages.map((m: any, idx: number) => {
+                const prev = sortedMessages[idx - 1];
+                const curDay = new Date(m.sentAt).toDateString();
+                const prevDay = prev ? new Date(prev.sentAt).toDateString() : null;
+                const showDay = idx === 0 || curDay !== prevDay;
+                return (
+                  <Fragment key={m.id}>
+                    {showDay && (
+                      <li className="text-center text-xs text-[#AAA]">
+                        {new Date(m.sentAt).toLocaleDateString(undefined, {
+                          month: "long",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </li>
+                    )}
+                    <li
+                      className={`flex ${m.direction === "OUT" ? "justify-end" : "justify-start"}`}
                     >
-                      <p>{m.body}</p>
-                      <span className="mt-1 block text-xs text-gray-500">
-                        {new Date(m.sentAt).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                </li>
-              ))}
+                      <div
+                        className={`flex items-end gap-2 ${m.direction === "OUT" ? "flex-row-reverse" : ""}`}
+                      >
+                        <Avatar label={m.direction === "OUT" ? "You" : contactInitials} />
+                        <div
+                          className={`max-w-[75%] break-words rounded-lg px-3 py-2 text-sm leading-[1.4] ${
+                            m.direction === "OUT"
+                              ? "bg-[#1F8A70] text-white"
+                              : "bg-[#F0F0F0] text-gray-900"
+                          }`}
+                        >
+                          <p>{m.body}</p>
+                          <span className="mt-1 flex items-center justify-end text-xs text-gray-500">
+                            {new Date(m.sentAt).toLocaleTimeString()}
+                            <Clock className="ml-1 h-3 w-3 text-[#999]" aria-hidden="true" />
+                          </span>
+                        </div>
+                      </div>
+                    </li>
+                  </Fragment>
+                );
+              })}
             </ul>
             <form
               onSubmit={sendMessage}
-              className="sticky bottom-0 left-0 right-0 flex flex-wrap gap-2 border-t border-gray-200 bg-white p-4"
+              className="sticky bottom-0 left-0 right-0 flex flex-wrap items-start gap-2 border-t border-[#DDD] bg-white p-4"
             >
               <select
                 className="max-w-xs rounded border p-1 shadow-sm"
@@ -189,18 +221,24 @@ export default function InboxPage() {
                   </option>
                 ))}
               </select>
-              <Input
-                className="flex-1"
-                placeholder="Type a message…"
-                value={messageBody}
-                onChange={(e) => setMessageBody(e.target.value)}
-                disabled={!contactId}
-                autoFocus
-              />
-              <Button type="submit" disabled={!contactId || !messageBody.trim()}
-              >
-                Send
-              </Button>
+              <div className="relative flex-1">
+                <Textarea
+                  className="w-full rounded-lg pr-10 min-h-12"
+                  placeholder="Type a message…"
+                  value={messageBody}
+                  onChange={(e) => setMessageBody(e.target.value)}
+                  disabled={!contactId}
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 disabled:opacity-40"
+                  disabled={!contactId || !messageBody.trim()}
+                  aria-label="Send message"
+                >
+                  <Send className="h-5 w-5" />
+                </button>
+              </div>
             </form>
           </>
         )}
