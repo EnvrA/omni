@@ -4,6 +4,15 @@ import useSWR from "swr";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Card, Button } from "@/components/ui";
+import {
+  Mail,
+  Handshake as HandshakeIcon,
+  Bell,
+  Plus,
+  UserPlus,
+  Briefcase,
+  MessageCircle,
+} from "lucide-react";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -15,32 +24,31 @@ const fetcher = async (url: string) => {
   }
 };
 
-const stageColors: Record<string, string> = {
-  NEW: "#60a5fa",
-  IN_PROGRESS: "#4ade80",
-  WAITING: "#facc15",
-  DONE: "#a3a3a3",
-};
-
-function DonutChart({ counts }: { counts: Record<string, number> }) {
-  const stages = ["NEW", "IN_PROGRESS", "WAITING", "DONE"];
-  const total = stages.reduce((s, k) => s + (counts[k] || 0), 0) || 1;
-  let current = 0;
-  const segments = stages
-    .map((stage) => {
-      const val = ((counts[stage] || 0) / total) * 100;
-      const seg = `${stageColors[stage]} ${current}% ${current + val}%`;
-      current += val;
-      return seg;
-    })
-    .join(", ");
+function DonutChart({
+  newCount,
+  total,
+  totalValue,
+}: {
+  newCount: number;
+  total: number;
+  totalValue: number;
+}) {
+  const percent = total > 0 ? (newCount / total) * 100 : 0;
+  const segments = `#1F8A70 0% ${percent}%, #E0E0E0 ${percent}% 100%`;
   return (
-    <div className="relative flex items-center justify-center">
+    <div
+      className="relative flex items-center justify-center"
+      title={`Total Value: $${totalValue}`}
+    >
       <div
-        className="h-24 w-24 rounded-full"
+        className="relative h-24 w-24 rounded-full"
         style={{ background: `conic-gradient(${segments})` }}
-      />
-      <div className="absolute text-sm font-semibold">{total}</div>
+      >
+        <div className="absolute inset-3 rounded-full bg-white" />
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center text-[14px] text-center">
+        New: {newCount} deals
+      </div>
     </div>
   );
 }
@@ -52,6 +60,7 @@ export default function DashboardPage() {
 
   const [appointments, setAppointments] = useState<any[]>([]);
   const [extras, setExtras] = useState<Record<string, any>>({});
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -110,23 +119,30 @@ export default function DashboardPage() {
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Link href="/dashboard/inbox" className="block focus:outline-none">
-          <Card className="text-center hover:bg-gray-50">
-            <p className="text-sm text-gray-500">Unread Messages</p>
-            <p className="text-2xl font-semibold" data-testid="unread-count">
-              {unreadCount}
-            </p>
+          <Card className="relative flex items-center justify-center rounded-xl p-4 shadow-[0_4px_8px_rgba(0,0,0,0.05)] hover:bg-gray-50">
+            <Mail className="absolute left-4 top-4 h-5 w-5 text-gray-500" />
+            <div className="text-center">
+              <p className="text-sm leading-4 text-gray-500">Unread Messages</p>
+              <p className="text-2xl font-semibold" data-testid="unread-count">{unreadCount}</p>
+            </div>
           </Card>
         </Link>
         <Link href="/dashboard/deals" className="block focus:outline-none">
-          <Card className="text-center hover:bg-gray-50">
-            <p className="text-sm text-gray-500">Deals in Progress</p>
-            <p className="text-2xl font-semibold">{dealsInProgress}</p>
+          <Card className="relative flex items-center justify-center rounded-xl p-4 shadow-[0_4px_8px_rgba(0,0,0,0.05)] hover:bg-gray-50">
+            <HandshakeIcon className="absolute left-4 top-4 h-5 w-5 text-gray-500" />
+            <div className="text-center">
+              <p className="text-sm leading-4 text-gray-500">Deals in Progress</p>
+              <p className="text-2xl font-semibold">{dealsInProgress}</p>
+            </div>
           </Card>
         </Link>
         <Link href="/dashboard/calendar" className="block focus:outline-none">
-          <Card className="text-center hover:bg-gray-50">
-            <p className="text-sm text-gray-500">Upcoming Reminders</p>
-            <p className="text-2xl font-semibold">{remindersCount}</p>
+          <Card className="relative flex items-center justify-center rounded-xl p-4 shadow-[0_4px_8px_rgba(0,0,0,0.05)] hover:bg-gray-50">
+            <Bell className="absolute left-4 top-4 h-5 w-5 text-gray-500" />
+            <div className="text-center">
+              <p className="text-sm leading-4 text-gray-500">Upcoming Reminders</p>
+              <p className="text-2xl font-semibold">{remindersCount}</p>
+            </div>
           </Card>
         </Link>
       </div>
@@ -170,19 +186,11 @@ export default function DashboardPage() {
       <div className="space-y-2">
         <h2 className="text-lg font-semibold">Pipeline Snapshot</h2>
         <div className="flex items-center gap-4">
-          <DonutChart counts={pipelineCounts} />
-          <div className="space-y-1 text-sm">
-            <p>Total Value: ${pipelineValue}</p>
-            {Object.entries(pipelineCounts).map(([stage, count]) => (
-              <p key={stage} className="flex items-center gap-1">
-                <span
-                  className="inline-block h-3 w-3 rounded-full"
-                  style={{ background: stageColors[stage] }}
-                />
-                {stage}: {count}
-              </p>
-            ))}
-          </div>
+          <DonutChart
+            newCount={pipelineCounts.NEW || 0}
+            total={Object.values(pipelineCounts).reduce((s, n) => s + n, 0)}
+            totalValue={pipelineValue}
+          />
         </div>
       </div>
 
@@ -222,36 +230,64 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick actions */}
-      <div className="flex flex-wrap gap-2">
-        <Link href="/dashboard/clients">
-          <Button className="bg-green-600 text-white hover:bg-green-700">New Contact</Button>
-        </Link>
-        <Link href="/dashboard/deals">
-          <Button className="bg-blue-600 text-white hover:bg-blue-700">New Deal</Button>
-        </Link>
-        <Link href="/dashboard/inbox">
-          <Button className="bg-indigo-600 text-white hover:bg-indigo-700">Send Message</Button>
-        </Link>
+      <div className="relative inline-block">
+        <Button
+          type="button"
+          onClick={() => setActionsOpen((o) => !o)}
+          className="flex items-center gap-1 bg-[#1F8A70] text-white hover:bg-[#176a55]"
+        >
+          <Plus className="h-4 w-4" /> Add
+        </Button>
+        {actionsOpen && (
+          <ul className="absolute z-10 mt-2 w-40 rounded-lg border bg-white shadow" role="menu">
+            <li>
+              <Link
+                href="/dashboard/clients"
+                className="flex items-center gap-2 px-2 py-1 hover:bg-gray-100"
+                onClick={() => setActionsOpen(false)}
+              >
+                <UserPlus className="h-4 w-4" /> New Contact
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/dashboard/deals"
+                className="flex items-center gap-2 px-2 py-1 hover:bg-gray-100"
+                onClick={() => setActionsOpen(false)}
+              >
+                <Briefcase className="h-4 w-4" /> New Deal
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/dashboard/inbox"
+                className="flex items-center gap-2 px-2 py-1 hover:bg-gray-100"
+                onClick={() => setActionsOpen(false)}
+              >
+                <MessageCircle className="h-4 w-4" /> Send Message
+              </Link>
+            </li>
+          </ul>
+        )}
       </div>
 
       {/* Usage & billing */}
       <div className="space-y-2">
         <h2 className="text-lg font-semibold">Usage &amp; Billing</h2>
         <div className="space-y-1">
-          <div className="h-2 w-full rounded bg-gray-200" aria-label="Contacts usage">
+          <div className="relative h-3 w-full rounded-md bg-[#E0E0E0]" aria-label="Contacts usage">
             <div
-              className="h-2 rounded bg-blue-600"
+              className="flex h-full items-center justify-center rounded-md bg-[#1F8A70] text-[10px] text-white"
               style={{ width: `${percent}%` }}
-            />
+            >
+              {contactsUsed} / {freeLimit}
+            </div>
           </div>
-          <p className="text-sm text-gray-600">
-            {contactsUsed} / {freeLimit} contacts used
-          </p>
         </div>
-        <Card className="flex items-center justify-between">
+        <Card className="flex items-center justify-between p-4">
           <span>Plan: {plan}</span>
           <Link href="/dashboard/settings">
-            <Button>Manage Subscription</Button>
+            <Button className="border-[#1F8A70] text-[#1F8A70]">Manage Subscription</Button>
           </Link>
         </Card>
       </div>
