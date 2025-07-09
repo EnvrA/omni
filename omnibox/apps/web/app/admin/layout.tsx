@@ -27,7 +27,7 @@ export default async function AdminLayout({
             href="/admin/tenants"
             className="w-full rounded px-2 py-1 text-left hover:bg-gray-100"
           >
-            Tenants
+            Users
           </Link>
           <Link
             href="/admin/usage"

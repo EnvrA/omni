@@ -7,10 +7,15 @@ import {
   MoreVertical,
   User,
   CreditCard,
-  Trash,
+  Trash2,
+  UserPlus,
+  PlusCircle,
   ArrowUp,
   ArrowDown,
   Pencil,
+  Search,
+  Layers,
+  Bell,
 } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -31,6 +36,7 @@ export default function TenantsPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [planTenant, setPlanTenant] = useState<Tenant | null>(null);
   const [editTenant, setEditTenant] = useState<(Tenant & { status: string }) | null>(null);
+  const [openActions, setOpenActions] = useState<string | null>(null);
   const { data: packages } = useSWR("/api/admin/packages", fetcher);
   const { data, mutate } = useSWR(`/api/admin/tenants?q=${query}&plan=${plan}&status=${status}`, fetcher);
 
@@ -80,6 +86,12 @@ export default function TenantsPage() {
     mutate();
   }
 
+  async function deleteTenant(id: string) {
+    if (!confirm("Delete this user?")) return;
+    await fetch(`/api/admin/tenants/${id}`, { method: "DELETE" });
+    mutate();
+  }
+
   const tenants = data ? [...data.tenants] : [];
   if (sort.field) {
     tenants.sort((a: any, b: any) => {
@@ -94,40 +106,66 @@ export default function TenantsPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-6">
-        <Input
-          className="border-b focus:outline-none"
-          placeholder="Search tenants"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <select
-          className="border-b focus:outline-none"
-          value={plan}
-          onChange={(e) => setPlan(e.target.value)}
-        >
-          <option value="">All Plans</option>
-          {packages?.packages.map((p: any) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-        <select
-          className="border-b focus:outline-none"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          <option value="">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
+        <div className="relative w-72">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <Input
+            className="border-b focus:outline-none pl-7 w-full"
+            placeholder="Search users..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        <div className="relative w-48">
+          <Layers className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <select
+            className="border-b focus:outline-none pl-7 w-full"
+            value={plan}
+            onChange={(e) => setPlan(e.target.value)}
+          >
+            <option value="">All Plans</option>
+            {packages?.packages.map((p: any) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="relative w-48">
+          <Bell className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          <select
+            className="border-b focus:outline-none pl-7 w-full"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <option value="">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
         <Button
           onClick={() => setAddOpen(true)}
-          className="bg-blue-600 text-white rounded-full px-4 py-1"
+          className="flex items-center gap-2 h-10 px-4 bg-[#1F8A70] text-white rounded-lg hover:bg-[#166653]"
         >
-          + Add Tenant
+          <PlusCircle className="h-5 w-5" /> Add User
         </Button>
       </div>
+      {(plan || status) && (
+        <div className="flex gap-2 mt-2">
+          {plan && (
+            <span className="text-xs px-2 py-1 rounded-full bg-[#E3F2FD] text-[#0D47A1] flex items-center gap-1">
+              {packages?.packages.find((p: any) => p.id === plan)?.name || plan}
+              <button onClick={() => setPlan("")}>×</button>
+            </span>
+          )}
+          {status && (
+            <span className="text-xs px-2 py-1 rounded-full bg-[#E3F2FD] text-[#0D47A1] flex items-center gap-1">
+              {status}
+              <button onClick={() => setStatus("")}>×</button>
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="overflow-x-auto">
         {selected.length > 0 && (
@@ -144,9 +182,9 @@ export default function TenantsPage() {
           </div>
         )}
         <table className="w-full text-sm">
-          <thead>
+          <thead className="sticky top-0 bg-white border-b">
             <tr className="text-left border-b">
-              <th className="p-2">
+              <th className="p-2 w-12 text-center">
                 <input
                   type="checkbox"
                   checked={data && selected.length === data.tenants.length}
@@ -160,20 +198,14 @@ export default function TenantsPage() {
               <th className="p-2 cursor-pointer" onClick={() => setSort({ field: "name", dir: sort.dir === "asc" ? "desc" : "asc" })}>
                 Company {sort.field === "name" && (sort.dir === "asc" ? <ArrowUp className="inline h-3" /> : <ArrowDown className="inline h-3" />)}
               </th>
-              <th className="p-2 cursor-pointer" onClick={() => setSort({ field: "plan", dir: sort.dir === "asc" ? "desc" : "asc" })}>
-                Plan {sort.field === "plan" && (sort.dir === "asc" ? <ArrowUp className="inline h-3" /> : <ArrowDown className="inline h-3" />)}
-              </th>
-              <th className="p-2 cursor-pointer" onClick={() => setSort({ field: "status", dir: sort.dir === "asc" ? "desc" : "asc" })}>
-                Status {sort.field === "status" && (sort.dir === "asc" ? <ArrowUp className="inline h-3" /> : <ArrowDown className="inline h-3" />)}
-              </th>
               <th className="p-2">Users</th>
-              <th className="p-2 text-right">Actions</th>
+              <th className="p-2 w-12 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {tenants.map((u: any) => (
-              <tr key={u.id} className="border-t hover:bg-gray-50">
-                <td className="p-2">
+              <tr key={u.id} className="border-t odd:bg-[#FCFCFC] even:bg-white hover:bg-[#F5F5F5]">
+                <td className="p-2 w-12 text-center">
                   <input
                     type="checkbox"
                     checked={selected.includes(u.id)}
@@ -184,57 +216,93 @@ export default function TenantsPage() {
                     }
                     className="mr-2"
                   />
-                  {u.name ?? u.email}
+                  <span className="font-bold text-base">{u.name ?? u.email}</span>
+                  {" "}
+                  <Badge className="ml-2 bg-gray-100">{u.stripeCustomer?.plan ?? "starter"}</Badge>
                 </td>
-                <td className="p-2">
-                  <Badge className={u.stripeCustomer?.plan === "pro" ? "bg-green-100" : "bg-gray-100"}>
-                    {u.stripeCustomer?.plan ?? "starter"}
-                  </Badge>
-                </td>
-                <td className="p-2">{u.status}</td>
+                  <td className="p-2">
+                    <span
+                      className="rounded-full px-2 py-0.5 text-xs text-white"
+                      style={{
+                        backgroundColor:
+                          u.status === "active"
+                            ? "#28A745"
+                            : u.status === "suspended"
+                            ? "#DC3545"
+                            : "#6C757D",
+                      }}
+                    >
+                      {u.status}
+                    </span>
+                  </td>
                 <td className="p-2">1</td>
-                <td className="p-2 text-right">
-                  <details className="relative">
-                    <summary className="cursor-pointer p-1 inline-block rounded hover:bg-gray-100">
-                      <MoreVertical className="h-4 w-4" />
-                    </summary>
-                    <div className="absolute right-0 mt-1 w-40 rounded border bg-white shadow-lg z-10">
+                <td className="p-2 w-12 text-right relative">
+                  <button
+                    className="p-1 rounded hover:bg-[#F5F5F5]"
+                    onClick={() =>
+                      setOpenActions(openActions === u.id ? null : u.id)
+                    }
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                  {openActions === u.id && (
+                    <div
+                      className="absolute right-0 mt-1 z-[100] bg-white rounded-lg shadow-lg border w-max py-2 px-0 max-h-60 overflow-y-auto"
+                    >
                       <Link
                         href={`/admin/tenants/${u.id}/impersonate`}
-                        className="flex items-center gap-2 px-2 py-1 hover:bg-gray-100"
+                        className="flex items-center gap-2 px-2 h-10 text-base hover:bg-[#F5F5F5] active:bg-[#E0E0E0]"
                       >
-                        <User className="h-4 w-4" /> Impersonate
+                        <User className="h-4 w-4" /> Impersonate User
                       </Link>
                       <button
-                        onClick={() => setPlanTenant(u)}
-                        className="flex w-full items-center gap-2 px-2 py-1 hover:bg-gray-100"
+                        onClick={() => {
+                          setPlanTenant(u);
+                          setOpenActions(null);
+                        }}
+                        className="flex w-full items-center gap-2 px-2 h-10 text-base hover:bg-[#F5F5F5] active:bg-[#E0E0E0]"
                       >
                         <CreditCard className="h-4 w-4" /> Change Plan
                       </button>
                       <button
-                        onClick={() => changeStatus(u.id, u.status === "active" ? "inactive" : "active")}
-                        className="flex w-full items-center gap-2 px-2 py-1 hover:bg-gray-100"
+                        onClick={() => {
+                          setAddOpen(true);
+                          setOpenActions(null);
+                        }}
+                        className="flex w-full items-center gap-2 px-2 h-10 text-base hover:bg-[#F5F5F5] active:bg-[#E0E0E0]"
                       >
-                        <Pencil className="h-4 w-4" /> Toggle Status
+                        <UserPlus className="h-4 w-4" /> Add User
                       </button>
                       <button
-                        onClick={() => setEditTenant(u)}
-                        className="flex w-full items-center gap-2 px-2 py-1 hover:bg-gray-100"
+                        onClick={() => {
+                          deleteTenant(u.id);
+                          setOpenActions(null);
+                        }}
+                        className="flex w-full items-center gap-2 px-2 h-10 text-base text-[#DC3545] hover:bg-[#F5F5F5] active:bg-[#E0E0E0]"
                       >
-                        <Pencil className="h-4 w-4" /> Edit Info
-                      </button>
-                      <button className="flex w-full items-center gap-2 px-2 py-1 text-red-600 hover:bg-gray-100">
-                        <Trash className="h-4 w-4" /> Cancel
+                        <Trash2 className="h-4 w-4" /> Delete User
                       </button>
                     </div>
-                  </details>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-
+      <div className="flex items-center justify-center gap-2 mt-4">
+        <button className="px-3 py-1 rounded bg-[#F0F0F0] text-[#555]">‹ Prev</button>
+        {[1, 2, 3].map((p) => (
+          <button
+            key={p}
+            className={`px-3 py-1 rounded-full ${p === 1 ? 'bg-[#1F8A70] text-white' : 'bg-[#F0F0F0] text-[#555]'}`}
+          >
+            {p}
+          </button>
+        ))}
+        <button className="px-3 py-1 rounded bg-[#F0F0F0] text-[#555]">Next ›</button>
+      </div>
+      
       {addOpen && (
         <dialog open className="fixed inset-0 flex items-center justify-center bg-black/50" onClick={() => setAddOpen(false)}>
           <form
@@ -244,7 +312,7 @@ export default function TenantsPage() {
               await saveTenant(formData);
             }}
           >
-            <h2 className="text-lg font-semibold">Add Tenant</h2>
+            <h2 className="text-lg font-semibold">Add User</h2>
             <Input name="name" placeholder="Company name" className="w-full" />
             <Input name="email" type="email" placeholder="Admin email" className="w-full" />
             <select name="plan" className="border-b w-full">
@@ -295,7 +363,7 @@ export default function TenantsPage() {
               await saveInfo(editTenant.id, formData);
             }}
           >
-            <h2 className="text-lg font-semibold">Edit Tenant</h2>
+            <h2 className="text-lg font-semibold">Edit User</h2>
             <Input name="name" defaultValue={editTenant.name ?? ""} className="w-full" />
             <Input name="email" type="email" defaultValue={editTenant.email} className="w-full" />
             <div className="flex justify-end gap-2 pt-2">
