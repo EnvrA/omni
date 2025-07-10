@@ -5,21 +5,23 @@ This repository uses Prisma with a PostgreSQL database.
 ## Setup database
 
 1. Create a PostgreSQL database and set the `DATABASE_URL` environment variable.
-2. Generate the schema in your database:
+2. Apply migrations and generate the Prisma client:
    ```sh
-   npx prisma db push
+   npx prisma migrate deploy --schema ./omnibox/prisma/schema.prisma
+   npx prisma generate --schema ./omnibox/prisma/schema.prisma
    ```
+   For local development you can run `npx prisma migrate dev --schema ./omnibox/prisma/schema.prisma` instead of `migrate deploy`.
 3. Seed sample data:
    ```sh
-   npx ts-node prisma/seed.ts
+   npx ts-node omnibox/prisma/seed.ts
    ```
 
 After these steps the `Contact` table and the rest of the schema will exist and you can run the application normally.
 
-Whenever the Prisma schema changes (for example the new optional contact fields introduced in this update) run:
+Whenever the Prisma schema changes run:
 ```sh
-npx prisma db push
-npx prisma generate
+npx prisma migrate dev --schema ./omnibox/prisma/schema.prisma
+npx prisma generate --schema ./omnibox/prisma/schema.prisma
 ```
 to update your database and regenerate the Prisma client.
 
