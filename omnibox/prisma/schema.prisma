@@ -25,11 +25,6 @@ enum Stage {
   DONE
 }
 
-enum Plan {
-  starter
-  pro
-  enterprise
-}
 
 model User {
   id              String           @id @default(uuid())
@@ -96,7 +91,7 @@ model StripeCustomer {
   userId           String   @unique
   user             User     @relation(fields: [userId], references: [id])
   stripeId         String
-  plan             Plan
+  plan             String
   currentPeriodEnd DateTime
 }
 
