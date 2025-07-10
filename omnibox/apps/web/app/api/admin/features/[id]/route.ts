@@ -4,9 +4,9 @@ import { FLAGS } from "@/lib/admin-data";
 
 export async function POST(
   req: NextRequest,
-  { params }: any,
+  { params }: { params: { id: string } },
 ) {
-  const { id } = (await params) as { id: string };
+  const { id } = params;
   const session = await serverSession();
   if (!session || session.user?.email !== process.env.ADMIN_EMAIL) {
     return new NextResponse("Unauthorized", { status: 401 });

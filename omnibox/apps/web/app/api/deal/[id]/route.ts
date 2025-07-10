@@ -4,9 +4,9 @@ import { serverSession } from "@/lib/auth";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: any,
+  { params }: { params: { id: string } },
 ) {
-  const { id } = (await params) as { id: string };
+  const { id } = params;
   const session = await serverSession();
   let email = session?.user?.email ?? "ee.altuntas@gmail.com";
   const user = await prisma.user.findFirst({ where: { email }, select: { id: true } });
@@ -24,9 +24,9 @@ export async function PATCH(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: any,
+  { params }: { params: { id: string } },
 ) {
-  const { id } = (await params) as { id: string };
+  const { id } = params;
   const session = await serverSession();
   let email = session?.user?.email ?? "ee.altuntas@gmail.com";
   const user = await prisma.user.findFirst({ where: { email }, select: { id: true } });
