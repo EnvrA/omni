@@ -304,21 +304,22 @@ export default function TenantsPage() {
                 </td>
                 <td className="p-2 align-middle text-[16px] text-[#111]">{u.name ?? "-"}</td>
                 <td className="p-2 text-center text-[14px] text-[#111]">1</td>
-                <td className="p-2 w-12 text-right relative">
-                  <button
-                    className="p-1 rounded hover:bg-[#F5F5F5]"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenActions(openActions === u.id ? null : u.id);
-                    }}
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </button>
-                  {openActions === u.id && (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className="absolute right-0 mt-1 z-[100] bg-white rounded-lg shadow-lg border w-max py-2"
+                <td className="p-2 w-12 text-right">
+                  <div className="relative">
+                    <button
+                      className="p-1 rounded hover:bg-[#F5F5F5]"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenActions(openActions === u.id ? null : u.id);
+                      }}
                     >
+                      <MoreVertical className="h-4 w-4" />
+                    </button>
+                    {openActions === u.id && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute right-0 top-full mt-1 z-[100] bg-white rounded-lg shadow-lg border w-max max-h-60 overflow-y-auto py-2"
+                      >
                       <Link
                         href={`/admin/users/${u.id}/impersonate`}
                         className="flex items-center gap-2 px-2 h-10 text-base hover:bg-[#F5F5F5] active:bg-[#E0E0E0]"
@@ -366,6 +367,7 @@ export default function TenantsPage() {
                       )}
                     </div>
                   )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -390,7 +392,9 @@ export default function TenantsPage() {
           <form
             className="w-80 space-y-2 rounded bg-white p-4 shadow"
             onClick={(e) => e.stopPropagation()}
-            action={async (formData) => {
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
               await saveTenant(formData);
             }}
           >
@@ -419,7 +423,9 @@ export default function TenantsPage() {
           <form
             className="w-60 space-y-2 rounded bg-white p-4 shadow"
             onClick={(e) => e.stopPropagation()}
-            action={async (formData) => {
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
               await changePlan(planTenant.id, String(formData.get("plan")));
             }}
           >
@@ -448,7 +454,9 @@ export default function TenantsPage() {
           <form
             className="w-80 space-y-2 rounded bg-white p-4 shadow"
             onClick={(e) => e.stopPropagation()}
-            action={async (formData) => {
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
               await saveInfo(editTenant.id, formData);
             }}
           >
