@@ -15,7 +15,7 @@ export default async function AdminLayout({
 
   return (
     <div className="flex min-h-screen">
-      <aside className="w-48 border-r p-4 flex flex-col">
+      <aside className="w-48 border-r p-4 flex flex-col h-screen sticky top-0 flex-shrink-0">
         <nav className="flex flex-col gap-2 flex-1">
           <Link
             href="/admin/dashboard"
