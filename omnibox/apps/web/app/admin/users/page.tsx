@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import { Button, Input } from "@/components/ui";
@@ -15,6 +15,10 @@ import {
   CheckCircle,
   Briefcase,
   Users as UsersIcon,
+  UserPlus,
+  Pencil,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -38,6 +42,23 @@ export default function TenantsPage() {
   const [openActions, setOpenActions] = useState<string | null>(null);
   const { data: packages } = useSWR("/api/admin/packages", fetcher);
   const { data, mutate } = useSWR(`/api/admin/users?q=${query}&plan=${plan}&status=${status}`, fetcher);
+
+  useEffect(() => {
+    if (!openActions) return;
+    const close = () => setOpenActions(null);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [openActions]);
+
+  function toggleSort(field: string) {
+    setSort((s) => ({ field, dir: s.field === field && s.dir === "asc" ? "desc" : "asc" }));
+  }
+
+  const getValue = (u: any, field: string) => {
+    if (field === "plan") return u.stripeCustomer?.plan ?? "";
+    if (field === "user") return u.name ?? u.email ?? "";
+    return u[field] ?? "";
+  };
 
   async function saveTenant(form: FormData) {
     await fetch("/api/admin/users", {
@@ -94,8 +115,8 @@ export default function TenantsPage() {
   const tenants = data ? [...data.tenants] : [];
   if (sort.field) {
     tenants.sort((a: any, b: any) => {
-      const aVal = a[sort.field] ?? "";
-      const bVal = b[sort.field] ?? "";
+      const aVal = getValue(a, sort.field);
+      const bVal = getValue(b, sort.field);
       if (aVal < bVal) return sort.dir === "asc" ? -1 : 1;
       if (aVal > bVal) return sort.dir === "asc" ? 1 : -1;
       return 0;
@@ -195,21 +216,37 @@ export default function TenantsPage() {
                   className="h-5 w-5"
                 />
               </th>
-              <th className="p-2 text-[16px] font-bold text-[#333]">User</th>
+              <th className="p-2 text-[16px] font-bold text-[#333]">
+                <button className="flex items-center gap-1" onClick={() => toggleSort('user')}>
+                  User
+                  {sort.field === 'user' && (
+                    sort.dir === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
+              </th>
               <th className="p-2 text-[16px] font-bold">
-                <span className="inline-flex items-center gap-1">
+                <button className="inline-flex items-center gap-1" onClick={() => toggleSort('plan')}>
                   <Layers className="h-4 w-4" /> Plan
-                </span>
+                  {sort.field === 'plan' && (
+                    sort.dir === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
               </th>
               <th className="p-2 text-[16px] font-bold">
-                <span className="inline-flex items-center gap-1">
+                <button className="inline-flex items-center gap-1" onClick={() => toggleSort('status')}>
                   <CheckCircle className="h-4 w-4" /> Status
-                </span>
+                  {sort.field === 'status' && (
+                    sort.dir === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
               </th>
               <th className="p-2 text-[16px] font-bold">
-                <span className="inline-flex items-center gap-1">
+                <button className="inline-flex items-center gap-1" onClick={() => toggleSort('name')}>
                   <Briefcase className="h-4 w-4" /> Company Name
-                </span>
+                  {sort.field === 'name' && (
+                    sort.dir === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </button>
               </th>
               <th className="p-2 text-[16px] font-bold text-center">
                 <span className="inline-flex items-center gap-1">
@@ -270,15 +307,17 @@ export default function TenantsPage() {
                 <td className="p-2 w-12 text-right relative">
                   <button
                     className="p-1 rounded hover:bg-[#F5F5F5]"
-                    onClick={() =>
-                      setOpenActions(openActions === u.id ? null : u.id)
-                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenActions(openActions === u.id ? null : u.id);
+                    }}
                   >
                     <MoreVertical className="h-4 w-4" />
                   </button>
                   {openActions === u.id && (
                     <div
-                      className="absolute right-0 mt-1 z-[100] bg-white rounded-lg shadow-lg border w-max py-2 px-0 max-h-60 overflow-y-auto"
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute right-0 mt-1 z-[100] bg-white rounded-lg shadow-lg border w-max py-2"
                     >
                       <Link
                         href={`/admin/users/${u.id}/impersonate`}
@@ -297,13 +336,34 @@ export default function TenantsPage() {
                       </button>
                       <button
                         onClick={() => {
-                          changeStatus(u.id, "inactive");
+                          setEditTenant({ ...u, status: u.status });
                           setOpenActions(null);
                         }}
-                        className="flex w-full items-center gap-2 px-2 h-10 text-base text-[#DC3545] hover:bg-[#F5F5F5] active:bg-[#E0E0E0]"
+                        className="flex w-full items-center gap-2 px-2 h-10 text-base hover:bg-[#F5F5F5] active:bg-[#E0E0E0]"
                       >
-                        <UserMinus className="h-4 w-4" /> Deactivate User
+                        <Pencil className="h-4 w-4" /> Edit User
                       </button>
+                      {u.status !== "active" ? (
+                        <button
+                          onClick={() => {
+                            changeStatus(u.id, "active");
+                            setOpenActions(null);
+                          }}
+                          className="flex w-full items-center gap-2 px-2 h-10 text-base hover:bg-[#F5F5F5] active:bg-[#E0E0E0]"
+                        >
+                          <UserPlus className="h-4 w-4" /> Reactivate User
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            changeStatus(u.id, "inactive");
+                            setOpenActions(null);
+                          }}
+                          className="flex w-full items-center gap-2 px-2 h-10 text-base text-[#DC3545] hover:bg-[#F5F5F5] active:bg-[#E0E0E0]"
+                        >
+                          <UserMinus className="h-4 w-4" /> Deactivate User
+                        </button>
+                      )}
                     </div>
                   )}
                 </td>
@@ -356,12 +416,18 @@ export default function TenantsPage() {
 
       {planTenant && (
         <dialog open className="fixed inset-0 flex items-center justify-center bg-black/50" onClick={() => setPlanTenant(null)}>
-          <div className="w-60 space-y-2 rounded bg-white p-4 shadow" onClick={(e) => e.stopPropagation()}>
+          <form
+            className="w-60 space-y-2 rounded bg-white p-4 shadow"
+            onClick={(e) => e.stopPropagation()}
+            action={async (formData) => {
+              await changePlan(planTenant.id, String(formData.get("plan")));
+            }}
+          >
             <h2 className="text-lg font-semibold">Change Plan</h2>
             <select
+              name="plan"
               defaultValue={planTenant.stripeCustomer?.plan ?? ""}
               className="border-b w-full"
-              onChange={(e) => changePlan(planTenant.id, e.target.value)}
             >
               {packages?.packages.map((p: any) => (
                 <option key={p.id} value={p.id}>
@@ -369,10 +435,11 @@ export default function TenantsPage() {
                 </option>
               ))}
             </select>
-            <div className="flex justify-end">
-              <Button type="button" onClick={() => setPlanTenant(null)}>Close</Button>
+            <div className="flex justify-end gap-2">
+              <Button type="button" onClick={() => setPlanTenant(null)}>Cancel</Button>
+              <Button type="submit" className="bg-blue-600 text-white">Save</Button>
             </div>
-          </div>
+          </form>
         </dialog>
       )}
 
