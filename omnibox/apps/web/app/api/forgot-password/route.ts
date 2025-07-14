@@ -18,7 +18,14 @@ export async function POST(req: NextRequest) {
   }
   const newPassword = crypto.randomBytes(8).toString("hex");
   const hashedPassword = await hash(newPassword, 10);
-  await prisma.user.update({ where: { email }, data: { hashedPassword } });
+  await prisma.user.update({
+    where: { email },
+    data: {
+      hashedPassword,
+      emailVerified: new Date(),
+    },
+  });
+  await prisma.verificationToken.deleteMany({ where: { identifier: email } });
   await sgMail.send({
     to: email,
     from: EMAIL_FROM,
