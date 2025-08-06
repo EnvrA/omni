@@ -109,7 +109,7 @@ export default function InvoicesPage() {
     setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
   }
 
-  const filteredInvoices = data?.invoices.filter((inv) => {
+  const filteredInvoices = data?.invoices?.filter((inv) => {
     const q = search.toLowerCase();
     const searchMatch =
       !search ||
